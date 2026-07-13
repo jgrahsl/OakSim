@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { crt } from '../state';
+	import { crt, keyInput } from '../state';
 
 	const CELL_W = 8;
 
@@ -21,6 +21,24 @@
 	function toggleCollapsed() {
 		collapsed = !collapsed;
 		localStorage?.setItem('oaksim.crtCollapsed', String(collapsed));
+	}
+
+	// Keystrokes on the focused screen go to the keyboard peripheral.
+	function handleKey(event: KeyboardEvent) {
+		let code: number | null = null;
+		if (event.key.length === 1) {
+			code = event.key.charCodeAt(0);
+		} else if (event.key === 'Enter') {
+			code = 13;
+		} else if (event.key === 'Backspace') {
+			code = 8;
+		} else if (event.key === 'Escape') {
+			code = 27;
+		}
+		if (code !== null && code < 128) {
+			keyInput(code);
+			event.preventDefault();
+		}
 	}
 
 	onMount(() => {
@@ -84,14 +102,20 @@
 
 <div class="panel" id="crt">
 	<button class="title" onclick={toggleCollapsed} title="Collapse/expand">
-		{collapsed ? '▸' : '▾'} CRT · MC6845 @ 0x70000
+		{collapsed ? '▸' : '▾'} CRT · MC6845 @ 0x70000 · KBD @ 0x70010
 		{#if $crt && $crt.crtc.cols > 0}
 			· {$crt.crtc.cols}×{$crt.crtc.rows}
 		{:else}
 			· off (R1/R6 not programmed)
 		{/if}
+		<span class="hint">click screen to type</span>
 	</button>
-	<canvas bind:this={canvas} class:hidden={collapsed}></canvas>
+	<canvas
+		bind:this={canvas}
+		class:hidden={collapsed}
+		tabindex="0"
+		onkeydown={handleKey}
+	></canvas>
 </div>
 
 <style>
@@ -110,6 +134,13 @@
 	}
 	canvas.hidden {
 		display: none;
+	}
+	.hint {
+		float: right;
+	}
+	canvas:focus {
+		border-color: #90a959;
+		outline: none;
 	}
 	canvas {
 		background: #000;

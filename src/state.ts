@@ -15,6 +15,7 @@ import {
 import { hexdump, type DumpRow } from './core/hexdump';
 import { buildLineMap, lineAt, type LineRange } from './core/linemap';
 import { Mc6845, type CrtcSnapshot } from './peripherals/mc6845';
+import { Mc6821Keyboard } from './peripherals/mc6821-kbd';
 import type { RegisterSnapshot } from './core/types';
 
 export const DEFAULT_PROGRAM = `@ --- MC6845 CRT demo --------------------------------------------
@@ -109,6 +110,7 @@ const FAST_FRAME_BUDGET_MS = 10;
 let machine: Machine;
 let assembler: Assembler;
 let crtc: Mc6845;
+let keyboard: Mc6821Keyboard;
 
 const registersStore = writable<RegisterSnapshot[]>([]);
 const memoryStore = writable<DumpRow[]>([]);
@@ -340,6 +342,11 @@ export function reset(): void {
 	assembleNow();
 }
 
+/** Feed a keystroke (ASCII) into the keyboard peripheral's FIFO. */
+export function keyInput(code: number): void {
+	keyboard.enqueue(code);
+}
+
 /**
  * Construct the core and assemble the default program. Must be called
  * after `initEngine()` has resolved and before the UI is mounted.
@@ -349,6 +356,8 @@ export function initState(): void {
 	assembler = new Assembler();
 	crtc = new Mc6845(MEMORY_MAP.mmio.base);
 	machine.attachPeripheral(crtc);
+	keyboard = new Mc6821Keyboard(MEMORY_MAP.mmio.base + 0x10);
+	machine.attachPeripheral(keyboard);
 
 	// Restore the slot that was active before the last reload.
 	const persisted = storage?.getItem(ACTIVE_SLOT_KEY);

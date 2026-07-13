@@ -2,12 +2,17 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { Assembler } from '../src/core/assembler';
 import { Machine, MEMORY_MAP } from '../src/core/machine';
 import { Mc6845 } from '../src/peripherals/mc6845';
+import { Mc6821Keyboard } from '../src/peripherals/mc6821-kbd';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Peripheral } from '../src/peripherals/peripheral';
 import { DEFAULT_PROGRAM } from '../src/state';
 
 let assembler: Assembler;
 let machine: Machine;
 let crtc: Mc6845;
+let keyboard: Mc6821Keyboard;
 
 class FakeDevice implements Peripheral {
 	readonly name = 'fake';
@@ -34,6 +39,8 @@ beforeAll(() => {
 	machine = new Machine();
 	crtc = new Mc6845(MEMORY_MAP.mmio.base);
 	machine.attachPeripheral(crtc);
+	keyboard = new Mc6821Keyboard(MEMORY_MAP.mmio.base + 0x10);
+	machine.attachPeripheral(keyboard);
 	fake = new FakeDevice(MEMORY_MAP.mmio.base + 0x100);
 	machine.attachPeripheral(fake);
 });
@@ -113,6 +120,58 @@ describe('Mc6845', () => {
 		expect(snap.cursorEndLine).toBe(6);
 		expect(snap.cursorAddress).toBe(0x12c);
 		expect(snap.startAddress).toBe(0x10);
+	});
+});
+
+describe('Mc6821Keyboard', () => {
+	it('reports status and pops the FIFO in order', () => {
+		keyboard.reset();
+		expect(keyboard.read(4)).toBe(0); // nothing pending
+		keyboard.enqueue(0x68); // 'h'
+		keyboard.enqueue(0x20); // ' '
+		expect(keyboard.read(4)).toBe(0x80);
+		expect(keyboard.read(0)).toBe(0x68);
+		expect(keyboard.read(0)).toBe(0x20);
+		expect(keyboard.read(4)).toBe(0);
+		expect(keyboard.read(0)).toBe(0); // empty reads yield 0
+	});
+
+	it('a guest polling loop receives typed keys', () => {
+		const result = assembler.assemble(
+			'ldr r4, =0x70010\nPoll:\nldr r1, [r4, #4]\ntst r1, #0x80\nbeq Poll\nldr r2, [r4]\nb .',
+			MEMORY_MAP.code.base,
+		);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		machine.loadProgram(result.bytes); // resets the bus (clears the FIFO)
+		keyboard.enqueue('k'.charCodeAt(0)); // then a key arrives
+		expect(machine.step(8).ok).toBe(true);
+		const r2 = machine.snapshotRegisters().find((r) => r.name === 'R2')!;
+		expect(r2.value).toBe('k'.charCodeAt(0));
+		expect(keyboard.pending()).toBe(0);
+	});
+
+	it('the keyboard example program moves the cursor and stamps X', () => {
+		keyboard.reset();
+		crtc.reset();
+		const source = readFileSync(
+			resolve(dirname(fileURLToPath(import.meta.url)), '../examples/keyboard.s'),
+			'utf8',
+		);
+		const result = assembler.assemble(source, MEMORY_MAP.code.base);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		machine.loadProgram(result.bytes);
+		// type: l (right), j (down), space (stamp)
+		for (const key of 'lj ') keyboard.enqueue(key.charCodeAt(0));
+		const stepResult = machine.run(5000);
+		expect(stepResult.ok, stepResult.ok ? '' : stepResult.message).toBe(true);
+		// cursor: 500 + 1 + 40 = 541
+		expect(crtc.snapshot().cursorAddress).toBe(541);
+		// X stamped at cell 541
+		const cell = machine.readMemory(MEMORY_MAP.vram.base + 541 * 2, 2);
+		expect(String.fromCharCode(cell[0])).toBe('X');
+		expect(cell[1]).toBe(0x0e);
 	});
 });
 

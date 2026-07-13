@@ -44,8 +44,8 @@
 				<CrtDisplay />
 				<Registers />
 			</div>
-			<HexPane id="memory" title="Code · PC underlined" rows={$memory} />
 			<HexPane id="stack" title="Stack top · SP underlined" rows={$stack} />
+			<HexPane id="memory" title="Code · PC underlined" rows={$memory} />
 			<HexPane id="data" title="Data · WRAM @ 0x40000" rows={$data} />
 		</div>
 	</div>
