@@ -84,6 +84,8 @@ const STACK_VIEW_BASE =
 /** Data window shown in the data panel (start of working RAM). */
 const DATA_VIEW_BYTES = 128;
 const DATA_VIEW_BASE = MEMORY_MAP.wram.base;
+/** Character-memory window: the full 40x25 text buffer (2 bytes/cell). */
+const VRAM_VIEW_BYTES = 2048;
 /** Debounce between an editor change and re-assembly, in ms. */
 const ASSEMBLE_DEBOUNCE_MS = 125;
 /** Minimum interval for stepped runs; a delay of 0 means full speed. */
@@ -99,6 +101,7 @@ const registersStore = writable<RegisterSnapshot[]>([]);
 const memoryStore = writable<DumpRow[]>([]);
 const stackStore = writable<DumpRow[]>([]);
 const dataStore = writable<DumpRow[]>([]);
+const vramStore = writable<DumpRow[]>([]);
 const crtStore = writable<CrtView | null>(null);
 const pcLineStore = writable<number | null>(null);
 const messagesStore = writable<string[]>([]);
@@ -109,6 +112,7 @@ export const registers = readonly(registersStore);
 export const memory = readonly(memoryStore);
 export const stack = readonly(stackStore);
 export const data = readonly(dataStore);
+export const vram = readonly(vramStore);
 export const crt = readonly(crtStore);
 /** 0-based source line at PC, for the editor highlight (null = none). */
 export const pcLine = readonly(pcLineStore);
@@ -122,6 +126,7 @@ let runInterval: ReturnType<typeof setInterval> | undefined;
 let runFrame: number | undefined;
 let previousStackBytes: Uint8Array | undefined;
 let previousDataBytes: Uint8Array | undefined;
+let previousVramBytes: Uint8Array | undefined;
 let lineMap: LineRange[] | null = null;
 
 function refresh(): void {
@@ -150,6 +155,17 @@ function refresh(): void {
 	pcLineStore.set(lineMap ? lineAt(lineMap, machine.pc()) : null);
 
 	const crtcState = crtc.snapshot();
+	const vramBytes = machine.readMemory(MEMORY_MAP.vram.base, VRAM_VIEW_BYTES);
+	vramStore.set(
+		hexdump(
+			vramBytes,
+			MEMORY_MAP.vram.base,
+			MEMORY_MAP.vram.base + crtcState.cursorAddress * 2, // cursor cell
+			32,
+			previousVramBytes,
+		),
+	);
+	previousVramBytes = vramBytes;
 	const cellBytes = crtcState.cols * crtcState.rows * 2;
 	const vram = MEMORY_MAP.vram;
 	const offset = (crtcState.startAddress * 2) % vram.size;

@@ -125,6 +125,14 @@ button {
 	flex: 0 0 auto;
 }
 
+/* Full-width character-memory pane at the bottom of the page. */
+#vram {
+	flex: 0 0 auto;
+	max-height: 200px;
+	overflow-y: auto;
+	white-space: nowrap;
+}
+
 /* Scrollbars */
 
 ::-webkit-scrollbar {

@@ -11,6 +11,7 @@
 		memory,
 		stack,
 		data,
+		vram,
 		pcLine,
 	} from '../state';
 </script>
@@ -39,5 +40,10 @@
 			<HexPane id="data" title="Data · WRAM @ 0x40000" rows={$data} />
 		</div>
 	</div>
+	<HexPane
+		id="vram"
+		title="Character memory · VRAM @ 0x60000 · cursor underlined"
+		rows={$vram}
+	/>
 	<footer class="panel" id="footer">&copy; 2017</footer>
 </div>
