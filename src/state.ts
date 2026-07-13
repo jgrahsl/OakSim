@@ -66,7 +66,7 @@ const VRAM_VIEW_BYTES = 2048;
 /** Debounce between an editor change and re-assembly, in ms. */
 const ASSEMBLE_DEBOUNCE_MS = 125;
 /** Minimum interval for stepped runs; a delay of 0 means full speed. */
-export const MIN_RUN_DELAY_MS = 50;
+const MIN_RUN_DELAY_MS = 50;
 /** Target emulation time per animation frame in full-speed mode. */
 const FAST_FRAME_BUDGET_MS = 10;
 
@@ -113,24 +113,22 @@ let lineMap: LineRange[] | null = null;
 function refresh(): void {
 	registersStore.set(machine.snapshotRegisters());
 	memoryStore.set(
-		hexdump(
-			machine.readMemory(MEMORY_MAP.code.base, MEMORY_VIEW_BYTES),
-			MEMORY_MAP.code.base,
-			machine.pc(),
-			16,
-			undefined,
-			UDF_WORD, // render the fill pattern dimmed — background, not data
-		),
+		hexdump(machine.readMemory(MEMORY_MAP.code.base, MEMORY_VIEW_BYTES), MEMORY_MAP.code.base, {
+			marker: machine.pc(),
+			dimWord: UDF_WORD, // render the fill pattern dimmed — background, not data
+		}),
 	);
 	const stackBytes = machine.readMemory(STACK_VIEW_BASE, STACK_VIEW_BYTES);
 	stackStore.set(
-		hexdump(stackBytes, STACK_VIEW_BASE, machine.sp(), 16, previousStackBytes),
+		hexdump(stackBytes, STACK_VIEW_BASE, {
+			marker: machine.sp(),
+			previous: previousStackBytes,
+		}),
 	);
 	previousStackBytes = stackBytes;
 
 	const dataBytes = machine.readMemory(DATA_VIEW_BASE, DATA_VIEW_BYTES);
-	// -8 marker: no marked word in the data view.
-	dataStore.set(hexdump(dataBytes, DATA_VIEW_BASE, -8, 16, previousDataBytes));
+	dataStore.set(hexdump(dataBytes, DATA_VIEW_BASE, { previous: previousDataBytes }));
 	previousDataBytes = dataBytes;
 
 	pcLineStore.set(lineMap ? lineAt(lineMap, machine.pc()) : null);
@@ -138,13 +136,11 @@ function refresh(): void {
 	const crtcState = refreshCrt();
 	const vramBytes = machine.readMemory(MEMORY_MAP.vram.base, VRAM_VIEW_BYTES);
 	vramStore.set(
-		hexdump(
-			vramBytes,
-			MEMORY_MAP.vram.base,
-			MEMORY_MAP.vram.base + crtcState.cursorAddress * 2, // cursor cell
-			32,
-			previousVramBytes,
-		),
+		hexdump(vramBytes, MEMORY_MAP.vram.base, {
+			marker: MEMORY_MAP.vram.base + crtcState.cursorAddress * 2, // cursor cell
+			width: 32,
+			previous: previousVramBytes,
+		}),
 	);
 	previousVramBytes = vramBytes;
 }

@@ -283,7 +283,7 @@ describe('hexdump', () => {
 		const bytes = new Uint8Array(32);
 		bytes[0] = 0x41; // 'A'
 		bytes[1] = 0x00;
-		const rows = hexdump(bytes, 0x10000, 0x10000);
+		const rows = hexdump(bytes, 0x10000, { marker: 0x10000 });
 		expect(rows.length).toBe(2);
 		expect(rows[0].offset).toBe('0x00010000');
 		expect(rows[0].bytes[0].hex).toBe('41');
@@ -298,19 +298,19 @@ describe('hexdump', () => {
 	it('flags bytes that differ from the previous snapshot', () => {
 		const previous = new Uint8Array([0, 0, 0, 0]);
 		const current = new Uint8Array([0, 0x2a, 0, 0]);
-		const rows = hexdump(current, 0xff00, 0, 16, previous);
+		const rows = hexdump(current, 0xff00, { previous });
 		expect(rows[0].bytes.map((b) => b.changed)).toEqual([false, true, false, false]);
 	});
 
 	it('flags nothing without a previous snapshot', () => {
-		const rows = hexdump(new Uint8Array([1, 2, 3]), 0, 0);
+		const rows = hexdump(new Uint8Array([1, 2, 3]), 0);
 		expect(rows[0].bytes.every((b) => !b.changed)).toBe(true);
 	});
 
 	it('dims aligned words matching dimWord (the code fill pattern)', () => {
 		// word 0: real instruction bytes; word 1: the UDF fill word
 		const bytes = new Uint8Array([0x05, 0x00, 0xa0, 0xe3, 0xf0, 0x00, 0xf0, 0xe7]);
-		const rows = hexdump(bytes, 0x10000, 0, 16, undefined, 0xe7f000f0);
+		const rows = hexdump(bytes, 0x10000, { dimWord: 0xe7f000f0 });
 		const dimColor = rows[0].bytes[7].color;
 		expect(rows[0].bytes.slice(4, 8).every((b) => b.color === dimColor)).toBe(true);
 		expect(rows[0].bytes[3].color).not.toBe(dimColor); // instruction stays lit

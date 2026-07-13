@@ -7,14 +7,18 @@ peripherals.
 
 > **Status: IMPLEMENTED (2026-07).** The bus (`src/core/bus.ts`), the
 > peripheral contract (`src/peripherals/peripheral.ts`), the MC6845
-> (`src/peripherals/mc6845.ts`), and the CRT panel
-> (`src/ui/CrtDisplay.svelte`) are live; the default program writes
-> "hello world" to the display and enables a blinking cursor.
-> `tests/peripherals.test.ts` covers bus dispatch, the 6845 register
-> protocol, and the end-to-end demo. The design below matches the
-> implementation; deviations are noted inline. To add a new device:
+> (`src/peripherals/mc6845.ts`) with its CRT panel
+> (`src/ui/CrtDisplay.svelte`), and a second device — the MC6821 PIA
+> keyboard (`src/peripherals/mc6821-kbd.ts`, ASCII FIFO at `0x70010`,
+> fed by keydown events on the focused CRT canvas) — are live. The
+> built-in demos exercise both: `examples/hello.s` writes to the display,
+> `examples/keyboard.s` reads keys and moves the hardware cursor.
+> `tests/peripherals.test.ts` covers bus dispatch, both devices'
+> register protocols, and the end-to-end demos. The design below matches
+> the implementation; deviations are noted inline. To add a new device:
 > implement `Peripheral`, `machine.attachPeripheral(device)` in
-> `initState()`, and add a panel component reading a snapshot store.
+> `initState()`, and (if it has a visual presence) add a panel component
+> reading a snapshot store.
 
 ## Why MMIO, and what Unicorn gives us
 

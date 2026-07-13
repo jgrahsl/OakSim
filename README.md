@@ -1,6 +1,11 @@
 # OakSim
 
-OakSim is a prototype front-end ARM assembler and Simulator that works entirely from within your browser!
+OakSim is an ARM assembler and simulator that works entirely from within your browser:
+edit GAS-syntax assembly with live re-assembly, single-step or run at tens of millions
+of instructions per second, and program memory-mapped peripherals — an MC6845 CRT
+controller rendering a 40×25 text display and an MC6821 keyboard — with register,
+stack, data and character-memory views alongside. Programs autosave to browser
+storage across reloads.
 
 ## [Live web page here!](https://wunkolo.github.io/OakSim/)
 

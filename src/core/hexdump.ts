@@ -23,16 +23,24 @@ export interface DumpRow {
 const COLORS = ['#e0e0e0', '#90a959', '#6a9fb5', '#ac4142', '#aa759f', '#f4bf75'];
 const ZERO_COLOR = '#313032';
 
+export interface HexdumpOptions {
+	/** Address whose 4-byte word gets the marker underline (PC/SP/cursor). */
+	marker?: number;
+	/** Bytes per row. */
+	width?: number;
+	/** Previous snapshot; differing bytes are flagged as changed. */
+	previous?: Uint8Array;
+	/** Aligned words with this value render dimmed like zero bytes (used
+	 *  for the code region's UDF fill pattern — background, not data). */
+	dimWord?: number;
+}
+
 export function hexdump(
 	bytes: Uint8Array,
 	baseAddress: number,
-	markerAddress: number,
-	width = 16,
-	previous?: Uint8Array,
-	/** Aligned words with this value render dimmed like zero bytes (used
-	 *  for the code region's UDF fill pattern — background, not data). */
-	dimWord?: number,
+	options: HexdumpOptions = {},
 ): DumpRow[] {
+	const { marker = -8, width = 16, previous, dimWord } = options;
 	const dimmed = new Uint8Array(bytes.length);
 	if (dimWord !== undefined) {
 		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -54,7 +62,7 @@ export function hexdump(
 				ascii: printable && !dimmed[i] ? String.fromCharCode(value) : '.',
 				color:
 					value === 0 || dimmed[i] ? ZERO_COLOR : COLORS[value % COLORS.length],
-				marked: markerAddress <= address && address < markerAddress + 4,
+				marked: marker <= address && address < marker + 4,
 				changed: previous !== undefined && previous[i] !== value,
 			});
 		}

@@ -42,7 +42,8 @@ OakSim/
 │   │   └── hexdump.ts          Pure hexdump formatting (structured data)
 │   ├── peripherals/
 │   │   ├── peripheral.ts       Device contract (read/write/reset over MMIO)
-│   │   └── mc6845.ts           Motorola 6845 CRTC register model
+│   │   ├── mc6845.ts           Motorola 6845 CRTC register model
+│   │   └── mc6821-kbd.ts       Apple I-style PIA keyboard (ASCII FIFO)
 │   └── ui/                     Svelte components (no direct core access)
 │       ├── App.svelte          Layout: header, editor column, panels column
 │       ├── Editor.svelte       CodeMirror 6 wrapper (GAS mode, OakSim theme)
@@ -134,10 +135,12 @@ Rules that keep this maintainable:
 `reset()` wipes the loaded program (restoring the code fill pattern),
 zeroes registers, and resets attached peripherals; `loadProgram()` is
 reset + write + UDF terminator; `step(n)` single-steps with
-`until = pc+4` (see the engine notes) and converts engine exceptions into
-`StepResult` values. The MC6845 lives at `0x70000` (`+0` address
-register, `+4` data register); its text buffer is VRAM at `0x60000`,
-2 bytes per cell (character, attribute).
+`until = pc+4` and `run(budget)` batch-executes (see the engine notes),
+both converting engine exceptions into `StepResult` values. Devices in
+the MMIO window: the MC6845 CRTC at `0x70000` (`+0` address register,
+`+4` data register; text buffer in VRAM at `0x60000`, 2 bytes per cell)
+and the MC6821 keyboard at `0x70010` (`+0` data pops the FIFO, `+4`
+status bit 7 = key ready).
 
 **`assembler.ts`** assembles GAS-syntax ARM source at a given load address
 (the code base is passed in, so literal pools and absolute references
@@ -147,26 +150,36 @@ assembled at address 0).
 ### State and data flow
 
 ```
- keystrokes              125 ms debounce
+ editor keystrokes       125 ms debounce
  Editor.svelte ─ onchange ───────────────► state.assembleNow()
                                               │ Assembler.assemble(src, 0x10000)
                                               │ ok → Machine.loadProgram(bytes)
+                                              │      + buildLineMap (PC line highlight)
                                               │ err → assembleError store
                                               ▼
- Toolbar: Step/Run ──► state.step() ──► Machine.step(1)
+ Toolbar: Step/Run ──► state.step() ──► Machine.step(1)     (per-instruction)
+ Toolbar: Fast ──────► state loop ────► Machine.run(batch)  (per rAF frame)
                                               │
                                               ▼
-                                     state.refresh()
-                        registers store ◄──── snapshotRegisters()
-                        memory store    ◄──── hexdump(readMemory(...), pc)
+                                     state.refresh() / refreshCrt()
+                        registers/hexdump/crt stores ◄── machine snapshots
                                               │
                                               ▼
-                        Registers.svelte / MemoryView.svelte re-render
+                        Registers / HexPane / CrtDisplay re-render
+ CRT-canvas keystrokes ──► state.keyInput() ──► keyboard FIFO (no refresh)
 ```
 
-"Run" is auto-stepping: a `setInterval` (min 50 ms) executing one
-instruction per tick — it is not real-time emulation. Errors during a step
-are appended to the messages store and stop the run loop.
+Run modes: **Run** auto-steps one instruction per interval tick (the delay
+field, min 50 ms effective) with full pane updates — the debugging mode.
+**Fast** executes adaptive batches (~10 ms of emulation per animation
+frame, tens of millions of instructions/sec); per frame only the CRT store
+refreshes, and the debug panes sync once when the run stops. Errors from
+either mode land in the messages store and stop the run.
+
+Program slots: the editor's content belongs to the active slot (toolbar:
+two immutable built-ins from `examples/` plus Pgm 0–3). Numbered slots
+autosave to localStorage on every edit; the active slot is persisted, so
+reloading the page restores the program being worked on.
 
 Behavior preserved from the original app: continuous re-assembly on edit
 (which also resets the machine), register change highlighting, PC-word
