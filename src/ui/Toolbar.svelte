@@ -13,18 +13,37 @@
 		onselectslot,
 	}: { onselectslot: (slot: ProgramSlot) => void } = $props();
 
-	let delay = $state(250);
+	let delay = $state(100);
+	let fastStarted = $state(false);
+
+	function startRun(fast: boolean) {
+		fastStarted = fast;
+		toggleRun(fast ? 0 : delay);
+	}
 </script>
 
 <div class="panel" id="buttons">
-	<button class:active={$running} onclick={() => toggleRun(delay)}>Run</button>
+	<button
+		class:active={$running && !fastStarted}
+		title="Run stepped, one instruction per interval"
+		onclick={() => startRun(false)}
+	>
+		Run
+	</button>
 	<input
 		type="number"
 		bind:value={delay}
-		min={0}
-		title="ms per step while running; 0 = full speed"
+		min={1}
+		title="ms per step for Run"
 		readonly={$running}
 	/>
+	<button
+		class:active={$running && fastStarted}
+		title="Run at full speed"
+		onclick={() => startRun(true)}
+	>
+		Fast
+	</button>
 	<button disabled={$running} onclick={() => step()}>Step</button>
 	<button onclick={() => reset()}>Reset</button>
 	<span class="separator"></span>
