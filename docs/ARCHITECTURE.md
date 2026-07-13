@@ -283,3 +283,11 @@ awaited in `main.ts`/`tests/setup.ts`. `asm(source, { address })` returns
 a `Uint8Array` and throws on error (wrapped into `AssembleResult`). One
 packaging quirk: its `exports` map lacks a `types` condition, so
 `tsconfig.json` maps the module to its `.d.ts` via `paths`.
+
+Every assembly is prefixed with `.cpu cortex-a15` to match the emulated
+CPU (Unicorn's default ARM model, MIDR `0x412FC0F1` = Cortex-A15 r2p1 =
+ARMv7-A): Keystone's bare ARM target otherwise rejects instructions the
+core executes fine, notably A32 `udiv`/`sdiv`. The directive emits no
+bytes, so addresses and the source line map are unaffected. Note the
+CPU's VFP/NEON unit is present but disabled at reset, faithful to real
+hardware — programs can enable it in SVC mode via CPACR + FPEXC.

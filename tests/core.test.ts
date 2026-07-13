@@ -53,6 +53,18 @@ describe('Assembler', () => {
 		const bytes = assembleOk('func:\nmov r0, #2\nbl func');
 		expect(Array.from(bytes.slice(4, 8))).toEqual([0xfd, 0xff, 0xff, 0xeb]);
 	});
+
+	// The Cortex-A15 target prelude enables instructions Keystone's bare
+	// ARM target rejects; the emulated CPU executes them.
+	it('assembles and executes udiv/sdiv', () => {
+		machine.loadProgram(assembleOk('mov r1, #100\nmov r2, #7\nudiv r0, r1, r2\nsdiv r3, r1, r2\nb .'));
+		expect(machine.step(4).ok).toBe(true);
+		const regs = Object.fromEntries(
+			machine.snapshotRegisters().map((r) => [r.name, r.value]),
+		);
+		expect(regs['R0']).toBe(14);
+		expect(regs['R3']).toBe(14);
+	});
 });
 
 describe('Machine', () => {

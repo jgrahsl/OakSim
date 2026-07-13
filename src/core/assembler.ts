@@ -14,6 +14,16 @@ export async function initAssembler(): Promise<void> {
 	await loadKeystone();
 }
 
+/**
+ * Match the assembler's target to the emulated CPU (Unicorn's default is
+ * a Cortex-A15). Keystone's bare ARM target rejects some instructions
+ * the core executes fine — notably A32 udiv/sdiv — so every assembly is
+ * prefixed with this directive. It emits no bytes, so addresses and the
+ * source line map are unaffected; a program's own .cpu/.arch directives
+ * still override it.
+ */
+const TARGET_PRELUDE = '.cpu cortex-a15\n';
+
 /** Wraps the Keystone ARM assembler (GAS syntax). */
 export class Assembler {
 	private engine: Keystone;
@@ -28,7 +38,7 @@ export class Assembler {
 	 */
 	assemble(source: string, address = 0): AssembleResult {
 		try {
-			const bytes = this.engine.asm(source, { address });
+			const bytes = this.engine.asm(TARGET_PRELUDE + source, { address });
 			return { ok: true, bytes };
 		} catch (error) {
 			return {
