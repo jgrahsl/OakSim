@@ -1,0 +1,54 @@
+/**
+ * Pure formatting of a memory block into hexdump rows. Returns structured
+ * data; the UI decides how to render it (no HTML strings in the core).
+ */
+
+export interface DumpByte {
+	hex: string;
+	ascii: string;
+	color: string;
+	/** True when this byte is inside the 4-byte word at the marker address
+	 *  (PC for code views, SP for stack views). */
+	marked: boolean;
+	/** True when this byte differs from the `previous` snapshot. */
+	changed: boolean;
+}
+
+export interface DumpRow {
+	offset: string;
+	bytes: DumpByte[];
+}
+
+/** Base16-ish accent palette; byte value picks a color. */
+const COLORS = ['#e0e0e0', '#90a959', '#6a9fb5', '#ac4142', '#aa759f', '#f4bf75'];
+const ZERO_COLOR = '#313032';
+
+export function hexdump(
+	bytes: Uint8Array,
+	baseAddress: number,
+	markerAddress: number,
+	width = 16,
+	previous?: Uint8Array,
+): DumpRow[] {
+	const rows: DumpRow[] = [];
+	for (let rowStart = 0; rowStart < bytes.length; rowStart += width) {
+		const row: DumpByte[] = [];
+		for (let i = rowStart; i < Math.min(rowStart + width, bytes.length); i++) {
+			const value = bytes[i];
+			const address = baseAddress + i;
+			const printable = value > 31 && value < 127;
+			row.push({
+				hex: value.toString(16).toUpperCase().padStart(2, '0'),
+				ascii: printable ? String.fromCharCode(value) : '.',
+				color: value === 0 ? ZERO_COLOR : COLORS[value % COLORS.length],
+				marked: markerAddress <= address && address < markerAddress + 4,
+				changed: previous !== undefined && previous[i] !== value,
+			});
+		}
+		rows.push({
+			offset: '0x' + (baseAddress + rowStart).toString(16).toUpperCase().padStart(8, '0'),
+			bytes: row,
+		});
+	}
+	return rows;
+}

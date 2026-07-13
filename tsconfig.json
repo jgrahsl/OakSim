@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"noEmit": true,
+		"isolatedModules": true,
+		"verbatimModuleSyntax": true,
+		"skipLibCheck": true,
+		"types": ["vite/client", "node"],
+		"paths": {
+			// keystone-wasm ships index.d.ts but omits a "types" condition in
+			// its exports map, so bundler resolution can't find it on its own.
+			"keystone-wasm": ["./node_modules/keystone-wasm/dist/index.d.ts"]
+		}
+	},
+	"include": ["src", "tests"]
+}

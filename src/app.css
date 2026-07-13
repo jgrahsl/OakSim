@@ -1,0 +1,147 @@
+/* Global layout and panel styling (ported from the original OakSim.css). */
+
+html,
+body {
+	background-color: #0e0e0e;
+	color: white;
+	font-family: courier, monospace;
+	font-size: 12px;
+	height: 100%;
+	letter-spacing: 1px;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+}
+
+textarea,
+input,
+button {
+	outline: none;
+}
+
+.panel {
+	background-color: #0e0e0e;
+	border: 1px dashed #313032;
+	border-radius: 3px;
+	box-shadow: inset 0px 0px 10px 0px rgba(1, 1, 1, 1);
+	margin: 5px;
+	padding: 10px;
+}
+
+#content {
+	display: flex;
+	flex-flow: column;
+	height: 100%;
+	margin: 0 auto;
+	min-width: 750px;
+	width: 90%;
+}
+
+#header,
+#footer {
+	flex: 0 1 auto;
+	text-align: center;
+}
+
+#main {
+	display: flex;
+	flex: 1 1 auto;
+	overflow: hidden;
+}
+
+.content-left,
+.content-right {
+	display: flex;
+	flex-flow: column;
+	overflow: auto;
+	flex: 0 1 50%;
+}
+
+#buttons {
+	flex: 0 1 auto;
+	padding: 4px;
+}
+
+#buttons button,
+#buttons input {
+	background: transparent;
+	border: 1px dashed #313032;
+	border-radius: 3px;
+	color: inherit;
+	font: inherit;
+	font-size: 14px;
+	padding: 10px;
+}
+
+#buttons button.active {
+	border-color: white;
+}
+
+#buttons button:disabled {
+	color: inherit;
+	opacity: 0.33;
+}
+
+#code {
+	flex: 1 1 60%;
+	overflow-y: hidden;
+	padding: 0;
+}
+
+/* Top row of the right column: CRT and registers side by side. */
+#top-right {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: flex-start;
+}
+
+#crt {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#registers {
+	flex: 0 0 auto;
+}
+
+#messages {
+	flex: 0 1 15%;
+	overflow-y: scroll;
+}
+
+/* Right-hand panes size themselves to their content (the column scrolls
+   if they overflow together); they never shrink below their content. */
+#registers,
+#memory,
+#stack,
+#data {
+	overflow-y: auto;
+	white-space: nowrap;
+}
+
+#memory,
+#stack,
+#data {
+	flex: 0 0 auto;
+}
+
+/* Scrollbars */
+
+::-webkit-scrollbar {
+	height: 4px;
+	width: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #a2a2a2;
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+	background: #313032;
+}
+
+div {
+	scrollbar-color: #a2a2a2 #313032;
+	scrollbar-width: thin;
+}

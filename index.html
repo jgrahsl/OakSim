@@ -1,44 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>OakSim</title>
-	<script src="lib/codemirror.js"></script>
-	<link rel="stylesheet" href="lib/codemirror.css">
-	<script src="lib/mode/gas/gas.js"></script>
-	<!--<script src="lib/capstone-arm.min.js"></script>-->
-	<script src="lib/keystone.min.js"></script>
-	<script src="lib/unicorn-arm.min.js"></script>
-	<link rel="stylesheet" href="styles/OakSim.css">
+	<link rel="icon" href="data:,">
 </head>
-
 <body>
-<div id="content">
-	<header id="header" class="panel">OakSim</header>
-	<div id="main">
-		<div class="content-left">
-			<div class="panel" id="buttons">
-				<button disabled>Open</button>
-				<button id="RunButton">Run</button>
-				<input id ="RunDelay" type="number" value="250" min="50" style="width: 50px">
-				<button id="StepButton">Step</button>
-				<button id="ResetButton">Reset</button>
-			</div>
-			<div class="panel" id="code">
-				<textarea id="source"></textarea>
-			</div>
-			<div class="panel" id="messages">
-			</div>
-		</div>
-
-		<div class="content-right">
-			<div class="panel" id="registers"></div>
-			<div class="panel" id="memory"></div>
-		</div>
-	</div>
-	<footer id="footer" class="panel">
-		&copy; 2017
-	</footer>
-</div>
-<script src="js/OakSim.js"></script>
+	<div id="app"></div>
+	<script type="module" src="/src/main.ts"></script>
 </body>
 </html>
