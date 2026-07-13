@@ -33,7 +33,7 @@ export const CODE_END = MEMORY_MAP.code.base + MEMORY_MAP.code.size;
  * Stepping additionally uses `until = pc + 4`, which caps translation at
  * the next instruction, so straight-line stepping never stops mid-block.
  */
-const UDF_WORD = 0xe7f000f0;
+export const UDF_WORD = 0xe7f000f0;
 const FILL_STRIDE_WORDS = 16;
 export const MAX_STRAIGHT_RUN = 32;
 

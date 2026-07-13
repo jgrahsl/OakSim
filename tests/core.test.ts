@@ -306,4 +306,15 @@ describe('hexdump', () => {
 		const rows = hexdump(new Uint8Array([1, 2, 3]), 0, 0);
 		expect(rows[0].bytes.every((b) => !b.changed)).toBe(true);
 	});
+
+	it('dims aligned words matching dimWord (the code fill pattern)', () => {
+		// word 0: real instruction bytes; word 1: the UDF fill word
+		const bytes = new Uint8Array([0x05, 0x00, 0xa0, 0xe3, 0xf0, 0x00, 0xf0, 0xe7]);
+		const rows = hexdump(bytes, 0x10000, 0, 16, undefined, 0xe7f000f0);
+		const dimColor = rows[0].bytes[7].color;
+		expect(rows[0].bytes.slice(4, 8).every((b) => b.color === dimColor)).toBe(true);
+		expect(rows[0].bytes[3].color).not.toBe(dimColor); // instruction stays lit
+		expect(rows[0].bytes[3].hex).toBe('E3');
+		expect(rows[0].bytes[4].hex).toBe('F0'); // hex still shown, just dim
+	});
 });

@@ -9,6 +9,7 @@ import {
 	Machine,
 	MEMORY_MAP,
 	MAX_STRAIGHT_RUN,
+	UDF_WORD,
 	longestStraightRun,
 } from './core/machine';
 import { hexdump, type DumpRow } from './core/hexdump';
@@ -130,6 +131,9 @@ function refresh(): void {
 			machine.readMemory(MEMORY_MAP.code.base, MEMORY_VIEW_BYTES),
 			MEMORY_MAP.code.base,
 			machine.pc(),
+			16,
+			undefined,
+			UDF_WORD, // render the fill pattern dimmed — background, not data
 		),
 	);
 	const stackBytes = machine.readMemory(STACK_VIEW_BASE, STACK_VIEW_BYTES);

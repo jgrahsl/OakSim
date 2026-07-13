@@ -29,7 +29,19 @@ export function hexdump(
 	markerAddress: number,
 	width = 16,
 	previous?: Uint8Array,
+	/** Aligned words with this value render dimmed like zero bytes (used
+	 *  for the code region's UDF fill pattern — background, not data). */
+	dimWord?: number,
 ): DumpRow[] {
+	const dimmed = new Uint8Array(bytes.length);
+	if (dimWord !== undefined) {
+		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+		for (let offset = 0; offset + 4 <= bytes.length; offset += 4) {
+			if (view.getUint32(offset, true) === (dimWord >>> 0)) {
+				dimmed.fill(1, offset, offset + 4);
+			}
+		}
+	}
 	const rows: DumpRow[] = [];
 	for (let rowStart = 0; rowStart < bytes.length; rowStart += width) {
 		const row: DumpByte[] = [];
@@ -39,8 +51,9 @@ export function hexdump(
 			const printable = value > 31 && value < 127;
 			row.push({
 				hex: value.toString(16).toUpperCase().padStart(2, '0'),
-				ascii: printable ? String.fromCharCode(value) : '.',
-				color: value === 0 ? ZERO_COLOR : COLORS[value % COLORS.length],
+				ascii: printable && !dimmed[i] ? String.fromCharCode(value) : '.',
+				color:
+					value === 0 || dimmed[i] ? ZERO_COLOR : COLORS[value % COLORS.length],
 				marked: markerAddress <= address && address < markerAddress + 4,
 				changed: previous !== undefined && previous[i] !== value,
 			});
