@@ -43,6 +43,13 @@
 	let host: HTMLDivElement;
 	let view: EditorView | undefined;
 
+	/** Replace the whole document (used when switching program slots). */
+	export function setContent(text: string): void {
+		view?.dispatch({
+			changes: { from: 0, to: view.state.doc.length, insert: text },
+		});
+	}
+
 	onMount(() => {
 		view = new EditorView({
 			doc: value,

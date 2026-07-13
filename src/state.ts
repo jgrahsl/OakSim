@@ -71,6 +71,19 @@ export interface CrtView {
 	cells: Uint8Array;
 }
 
+/**
+ * Program slots, persisted in localStorage. 'default' is the built-in
+ * 6845 demo and is immutable — edits to it are ephemeral. Numbered slots
+ * autosave on every edit and on switching away, so the active program
+ * survives page reloads.
+ */
+export type ProgramSlot = 'default' | number;
+export const SLOT_COUNT = 4;
+const ACTIVE_SLOT_KEY = 'oaksim.activeSlot';
+const slotKey = (slot: number) => `oaksim.program.${slot}`;
+const storage: Storage | null =
+	typeof localStorage === 'undefined' ? null : localStorage;
+
 /** Bytes of code memory shown in the memory panel (0x10000–0x10100). */
 const MEMORY_VIEW_BYTES = 256;
 /**
@@ -104,6 +117,7 @@ const dataStore = writable<DumpRow[]>([]);
 const vramStore = writable<DumpRow[]>([]);
 const crtStore = writable<CrtView | null>(null);
 const pcLineStore = writable<number | null>(null);
+const activeSlotStore = writable<ProgramSlot>('default');
 const messagesStore = writable<string[]>([]);
 const runningStore = writable(false);
 const assembleErrorStore = writable<string | null>(null);
@@ -116,11 +130,13 @@ export const vram = readonly(vramStore);
 export const crt = readonly(crtStore);
 /** 0-based source line at PC, for the editor highlight (null = none). */
 export const pcLine = readonly(pcLineStore);
+export const activeSlot = readonly(activeSlotStore);
 export const messages = readonly(messagesStore);
 export const running = readonly(runningStore);
 export const assembleError = readonly(assembleErrorStore);
 
 let currentSource = DEFAULT_PROGRAM;
+let currentSlot: ProgramSlot = 'default';
 let assembleTimer: ReturnType<typeof setTimeout> | undefined;
 let runInterval: ReturnType<typeof setInterval> | undefined;
 let runFrame: number | undefined;
@@ -217,8 +233,45 @@ function assembleNow(): void {
 /** Called by the editor on every change; re-assembles after a short pause. */
 export function sourceChanged(source: string): void {
 	currentSource = source;
+	persistCurrentSlot();
 	clearTimeout(assembleTimer);
 	assembleTimer = setTimeout(assembleNow, ASSEMBLE_DEBOUNCE_MS);
+}
+
+function persistCurrentSlot(): void {
+	if (currentSlot !== 'default') {
+		storage?.setItem(slotKey(currentSlot), currentSource);
+	}
+}
+
+function slotText(slot: ProgramSlot): string {
+	if (slot === 'default') {
+		return DEFAULT_PROGRAM;
+	}
+	return (
+		storage?.getItem(slotKey(slot)) ??
+		`@ Program ${slot} — autosaved in your browser\n`
+	);
+}
+
+/** The source belonging to the active slot (initial editor content). */
+export function currentProgram(): string {
+	return currentSource;
+}
+
+/**
+ * Save the current program into its slot ('default' is immutable, so
+ * edits to it are discarded), activate `slot`, and return its text.
+ * The caller puts the text into the editor, whose change event triggers
+ * re-assembly.
+ */
+export function selectSlot(slot: ProgramSlot): string {
+	persistCurrentSlot();
+	stopRun();
+	currentSlot = slot;
+	activeSlotStore.set(slot);
+	storage?.setItem(ACTIVE_SLOT_KEY, String(slot));
+	return slotText(slot);
 }
 
 export function step(): boolean {
@@ -296,5 +349,18 @@ export function initState(): void {
 	assembler = new Assembler();
 	crtc = new Mc6845(MEMORY_MAP.mmio.base);
 	machine.attachPeripheral(crtc);
+
+	// Restore the slot that was active before the last reload.
+	const persisted = storage?.getItem(ACTIVE_SLOT_KEY);
+	const slot = persisted !== null && persisted !== undefined && persisted !== 'default'
+		? Number(persisted)
+		: 'default';
+	currentSlot =
+		typeof slot === 'number' && (Number.isNaN(slot) || slot < 0 || slot >= SLOT_COUNT)
+			? 'default'
+			: slot;
+	activeSlotStore.set(currentSlot);
+	currentSource = slotText(currentSlot);
+
 	assembleNow();
 }

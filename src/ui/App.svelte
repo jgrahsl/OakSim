@@ -6,24 +6,33 @@
 	import Registers from './Registers.svelte';
 	import HexPane from './HexPane.svelte';
 	import {
-		DEFAULT_PROGRAM,
+		currentProgram,
+		selectSlot,
 		sourceChanged,
 		memory,
 		stack,
 		data,
 		vram,
 		pcLine,
+		type ProgramSlot,
 	} from '../state';
+
+	let editor: Editor | undefined;
+
+	function handleSelectSlot(slot: ProgramSlot): void {
+		editor?.setContent(selectSlot(slot));
+	}
 </script>
 
 <div id="content">
 	<header class="panel" id="header">OakSim</header>
 	<div id="main">
 		<div class="content-left">
-			<Toolbar />
+			<Toolbar onselectslot={handleSelectSlot} />
 			<div class="panel" id="code">
 				<Editor
-					value={DEFAULT_PROGRAM}
+					bind:this={editor}
+					value={currentProgram()}
 					onchange={sourceChanged}
 					pcLine={$pcLine}
 				/>

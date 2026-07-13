@@ -13,6 +13,15 @@
 
 	let canvas: HTMLCanvasElement;
 	let blinkPhase = $state(true);
+	let collapsed = $state(
+		typeof localStorage !== 'undefined' &&
+			localStorage.getItem('oaksim.crtCollapsed') === 'true',
+	);
+
+	function toggleCollapsed() {
+		collapsed = !collapsed;
+		localStorage?.setItem('oaksim.crtCollapsed', String(collapsed));
+	}
 
 	onMount(() => {
 		const timer = setInterval(() => {
@@ -74,21 +83,33 @@
 </script>
 
 <div class="panel" id="crt">
-	<div class="title">
-		CRT · MC6845 @ 0x70000
+	<button class="title" onclick={toggleCollapsed} title="Collapse/expand">
+		{collapsed ? '▸' : '▾'} CRT · MC6845 @ 0x70000
 		{#if $crt && $crt.crtc.cols > 0}
 			· {$crt.crtc.cols}×{$crt.crtc.rows}
 		{:else}
 			· off (R1/R6 not programmed)
 		{/if}
-	</div>
-	<canvas bind:this={canvas}></canvas>
+	</button>
+	<canvas bind:this={canvas} class:hidden={collapsed}></canvas>
 </div>
 
 <style>
 	.title {
+		background: none;
+		border: none;
 		color: #505050;
+		cursor: pointer;
+		display: block;
+		font: inherit;
+		letter-spacing: inherit;
 		margin-bottom: 6px;
+		padding: 0;
+		text-align: left;
+		width: 100%;
+	}
+	canvas.hidden {
+		display: none;
 	}
 	canvas {
 		background: #000;
