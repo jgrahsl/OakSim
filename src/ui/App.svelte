@@ -25,7 +25,6 @@
 </script>
 
 <div id="content">
-	<header class="panel" id="header">OakSim</header>
 	<div id="main">
 		<div class="content-left">
 			<Toolbar onselectslot={handleSelectSlot} />
@@ -54,5 +53,4 @@
 		title="Character memory · VRAM @ 0x60000 · cursor underlined"
 		rows={$vram}
 	/>
-	<footer class="panel" id="footer">&copy; 2017</footer>
 </div>

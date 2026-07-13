@@ -55,15 +55,24 @@
 		const ctx = canvas.getContext('2d');
 		if (!ctx) return;
 
-		const cols = view?.crtc.cols ?? 0;
-		const rows = view?.crtc.rows ?? 0;
-		const cellH = Math.max(view?.crtc.charHeight ?? 8, 2);
+		// While the CRTC is unprogrammed (R1/R6 = 0), keep the canvas at the
+		// standard 40x25 geometry so the layout doesn't jump when a program
+		// switches the display on.
+		let cols = view?.crtc.cols ?? 0;
+		let rows = view?.crtc.rows ?? 0;
+		let cellH = Math.max(view?.crtc.charHeight ?? 8, 2);
+		const off = !view || cols === 0 || rows === 0;
+		if (off) {
+			cols = 40;
+			rows = 25;
+			cellH = 8;
+		}
 
-		canvas.width = Math.max(cols * CELL_W, 8);
-		canvas.height = Math.max(rows * cellH, 8);
+		canvas.width = cols * CELL_W;
+		canvas.height = rows * cellH;
 		ctx.fillStyle = '#000000';
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		if (!view || cols === 0 || rows === 0) return;
+		if (off) return;
 
 		ctx.font = `${cellH}px monospace`;
 		ctx.textBaseline = 'bottom';

@@ -37,12 +37,6 @@ button {
 	width: 90%;
 }
 
-#header,
-#footer {
-	flex: 0 1 auto;
-	text-align: center;
-}
-
 #main {
 	display: flex;
 	flex: 1 1 auto;
@@ -101,7 +95,8 @@ button {
 }
 
 #registers {
-	flex: 0 0 auto;
+	/* Fixed width so growing register values don't reflow the CRT beside it. */
+	flex: 0 0 180px;
 }
 
 #messages {

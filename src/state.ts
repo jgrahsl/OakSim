@@ -135,7 +135,7 @@ function refresh(): void {
 
 	pcLineStore.set(lineMap ? lineAt(lineMap, machine.pc()) : null);
 
-	const crtcState = crtc.snapshot();
+	const crtcState = refreshCrt();
 	const vramBytes = machine.readMemory(MEMORY_MAP.vram.base, VRAM_VIEW_BYTES);
 	vramStore.set(
 		hexdump(
@@ -147,6 +147,16 @@ function refresh(): void {
 		),
 	);
 	previousVramBytes = vramBytes;
+}
+
+/**
+ * Update only the CRT store — the cheap per-frame refresh used during
+ * full-speed runs, where the debug panes (registers, hexdumps, PC line)
+ * are deferred until the run stops. Keyboard input needs no refresh at
+ * all: keystrokes go straight into the peripheral's FIFO.
+ */
+function refreshCrt(): CrtcSnapshot {
+	const crtcState = crtc.snapshot();
 	const cellBytes = crtcState.cols * crtcState.rows * 2;
 	const vram = MEMORY_MAP.vram;
 	const offset = (crtcState.startAddress * 2) % vram.size;
@@ -160,6 +170,7 @@ function refresh(): void {
 					)
 				: new Uint8Array(0),
 	});
+	return crtcState;
 }
 
 function log(message: string): void {
@@ -249,6 +260,7 @@ export function step(): boolean {
 }
 
 function stopRun(): void {
+	const wasRunning = runInterval !== undefined || runFrame !== undefined;
 	if (runInterval !== undefined) {
 		clearInterval(runInterval);
 		runInterval = undefined;
@@ -258,6 +270,9 @@ function stopRun(): void {
 		runFrame = undefined;
 	}
 	runningStore.set(false);
+	if (wasRunning) {
+		refresh(); // sync the deferred debug panes with the final state
+	}
 }
 
 export function toggleRun(delayMs: number): void {
@@ -281,7 +296,9 @@ export function toggleRun(delayMs: number): void {
 					Math.min(2_000_000, Math.round((batch * FAST_FRAME_BUDGET_MS) / elapsed)),
 				);
 			}
-			refresh();
+			// Per-frame, only the screen matters; the debug panes catch up
+			// in stopRun() once the run ends.
+			refreshCrt();
 			if (!result.ok) {
 				log(result.message);
 				stopRun();
