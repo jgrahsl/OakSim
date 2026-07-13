@@ -45,4 +45,19 @@ describe('program slots', () => {
 	it('empty slots come up with a placeholder comment', () => {
 		expect(state.selectSlot(3)).toContain('Program 3');
 	});
+
+	it('the keyboard built-in loads the demo and is immutable', () => {
+		const text = state.selectSlot('keyboard');
+		expect(text).toBe(state.KEYBOARD_PROGRAM);
+		expect(text).toContain('Keyboard demo');
+		state.sourceChanged('@ scribble');
+		state.selectSlot(0);
+		expect(state.selectSlot('keyboard')).toBe(state.KEYBOARD_PROGRAM);
+	});
+
+	it('a persisted keyboard slot survives reload', () => {
+		state.selectSlot('keyboard');
+		state.initState();
+		expect(state.currentProgram()).toBe(state.KEYBOARD_PROGRAM);
+	});
 });

@@ -35,6 +35,13 @@
 	>
 		Default
 	</button>
+	<button
+		class:active={$activeSlot === 'keyboard'}
+		title="Built-in keyboard demo: hjkl move, space stamps (read-only)"
+		onclick={() => onselectslot('keyboard')}
+	>
+		Keyboard
+	</button>
 	{#each Array(SLOT_COUNT) as _, slot (slot)}
 		<button
 			class:active={$activeSlot === slot}

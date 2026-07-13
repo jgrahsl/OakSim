@@ -13,57 +13,15 @@ import {
 	longestStraightRun,
 } from './core/machine';
 import { hexdump, type DumpRow } from './core/hexdump';
+import helloSource from '../examples/hello.s?raw';
+import keyboardSource from '../examples/keyboard.s?raw';
 import { buildLineMap, lineAt, type LineRange } from './core/linemap';
 import { Mc6845, type CrtcSnapshot } from './peripherals/mc6845';
 import { Mc6821Keyboard } from './peripherals/mc6821-kbd';
 import type { RegisterSnapshot } from './core/types';
 
-export const DEFAULT_PROGRAM = `@ --- MC6845 CRT demo --------------------------------------------
-@ Programs the CRT controller (registers via the MMIO address/data
-@ pair at 0x70000), then writes "hello world" into video memory at
-@ row 5, column 5, and leaves a blinking cursor after the text.
-
-	ldr	r0, =0x70000		@ CRTC: +0 address reg, +4 data reg
-	ldr	r1, =CrtcTable
-InitLoop:
-	ldrb	r2, [r1], #1		@ register index (0xFF = end of table)
-	cmp	r2, #0xFF
-	beq	WriteText
-	str	r2, [r0]		@ select CRTC register
-	ldrb	r3, [r1], #1
-	str	r3, [r0, #4]		@ write its value
-	b	InitLoop
-
-WriteText:
-	ldr	r1, =Message
-	ldr	r3, =0x6019A		@ VRAM cell (5*40+5)*2: row 5, col 5
-CopyLoop:
-	ldrb	r2, [r1], #1		@ next character (0 = done)
-	cmp	r2, #0
-	beq	Done
-	strb	r2, [r3], #1		@ character byte
-	mov	r4, #0x0A		@ attribute: bright green
-	strb	r4, [r3], #1
-	b	CopyLoop
-Done:
-	b	Done			@ park here
-
-CrtcTable:				@ pairs of (register, value)
-	.byte	1, 40			@ R1  columns displayed
-	.byte	6, 25			@ R6  rows displayed
-	.byte	9, 7			@ R9  scanlines per row - 1
-	.byte	10, 0x40		@ R10 cursor: blink, start line 0
-	.byte	11, 7			@ R11 cursor end line
-	.byte	12, 0			@ R12 display start (hi)
-	.byte	13, 0			@ R13 display start (lo)
-	.byte	14, 0			@ R14 cursor address (hi)
-	.byte	15, 216			@ R15 cursor address: 5*40+16
-	.byte	0xFF, 0xFF
-	.balign	4
-Message:
-	.asciz	"hello world"
-	.balign	4
-`;
+export const DEFAULT_PROGRAM = helloSource;
+export const KEYBOARD_PROGRAM = keyboardSource;
 
 /** What CrtDisplay.svelte renders: CRTC state + the visible VRAM cells. */
 export interface CrtView {
@@ -73,12 +31,17 @@ export interface CrtView {
 }
 
 /**
- * Program slots, persisted in localStorage. 'default' is the built-in
- * 6845 demo and is immutable — edits to it are ephemeral. Numbered slots
- * autosave on every edit and on switching away, so the active program
- * survives page reloads.
+ * Program slots, persisted in localStorage. The named slots are built-in
+ * demos ('default' = 6845 hello world, 'keyboard' = MC6821 demo) and are
+ * immutable — edits to them are ephemeral. Numbered slots autosave on
+ * every edit and on switching away, so the active program survives page
+ * reloads.
  */
-export type ProgramSlot = 'default' | number;
+export type ProgramSlot = 'default' | 'keyboard' | number;
+const BUILTIN_PROGRAMS: Record<string, string> = {
+	default: helloSource,
+	keyboard: keyboardSource,
+};
 export const SLOT_COUNT = 4;
 const ACTIVE_SLOT_KEY = 'oaksim.activeSlot';
 const slotKey = (slot: number) => `oaksim.program.${slot}`;
@@ -241,14 +204,14 @@ export function sourceChanged(source: string): void {
 }
 
 function persistCurrentSlot(): void {
-	if (currentSlot !== 'default') {
+	if (typeof currentSlot === 'number') {
 		storage?.setItem(slotKey(currentSlot), currentSource);
 	}
 }
 
 function slotText(slot: ProgramSlot): string {
-	if (slot === 'default') {
-		return DEFAULT_PROGRAM;
+	if (typeof slot !== 'number') {
+		return BUILTIN_PROGRAMS[slot];
 	}
 	return (
 		storage?.getItem(slotKey(slot)) ??
@@ -361,13 +324,19 @@ export function initState(): void {
 
 	// Restore the slot that was active before the last reload.
 	const persisted = storage?.getItem(ACTIVE_SLOT_KEY);
-	const slot = persisted !== null && persisted !== undefined && persisted !== 'default'
-		? Number(persisted)
-		: 'default';
-	currentSlot =
-		typeof slot === 'number' && (Number.isNaN(slot) || slot < 0 || slot >= SLOT_COUNT)
-			? 'default'
-			: slot;
+	if (persisted !== null && persisted !== undefined && persisted in BUILTIN_PROGRAMS) {
+		currentSlot = persisted as ProgramSlot;
+	} else {
+		const slot = Number(persisted);
+		currentSlot =
+			persisted !== null &&
+			persisted !== undefined &&
+			Number.isInteger(slot) &&
+			slot >= 0 &&
+			slot < SLOT_COUNT
+				? slot
+				: 'default';
+	}
 	activeSlotStore.set(currentSlot);
 	currentSource = slotText(currentSlot);
 
