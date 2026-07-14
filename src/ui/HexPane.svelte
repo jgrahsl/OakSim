@@ -61,6 +61,11 @@
 		background: rgba(210, 132, 69, 0.3);
 		text-decoration-color: #d28445;
 	}
+	/* SP and FP on the same word. */
+	.hex.mark-sp.mark-fp {
+		background: rgba(170, 117, 159, 0.4);
+		text-decoration-color: #aa759f;
+	}
 	.changed {
 		background: rgba(244, 191, 117, 0.28);
 		border-radius: 2px;
