@@ -9,11 +9,11 @@
 	/** Swatch colors matching the byte-mark styles below. */
 	const SWATCH: Record<LegendItem['kind'], string> = {
 		pc: '#f4bf75', // yellow is reserved for the PC across the UI
-		sp: '#6a9fb5',
+		sp: '#a3d5ee', // light blue, rendered over the dark-blue frame band
 		fp: '#d28445',
 		spfp: '#aa759f',
 		lr: '#8a5a35',
-		frame: '#4a4a4c',
+		frame: '#23455c', // dark blue
 		cursor: '#e0e0e0',
 		changed: '#90a959',
 	};
@@ -101,11 +101,11 @@
 		background: rgba(144, 169, 89, 0.45);
 		border-radius: 2px;
 	}
-	/* Stack-frame band (SP up to the saved fp/lr words) and the saved-LR
-	   slot inside it; declared before the solid pointer marks so SP/FP
-	   stay visible on top. */
+	/* Stack-frame band ([fp-4, initial SP)) and the saved-LR slot inside
+	   it; declared before the solid pointer marks so SP/FP stay visible
+	   on top. */
 	.hex.mark-frame {
-		background: rgba(224, 224, 224, 0.09);
+		background: #23455c;
 	}
 	.hex.mark-lr {
 		background: rgba(210, 132, 69, 0.35);
@@ -121,7 +121,7 @@
 		color: #0e0e0e !important;
 	}
 	.hex.mark-sp {
-		background: #6a9fb5;
+		background: #a3d5ee;
 		border-radius: 2px;
 		color: #0e0e0e !important;
 	}
