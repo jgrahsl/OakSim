@@ -25,9 +25,11 @@ const COLORS = ['#e0e0e0', '#90a959', '#6a9fb5', '#ac4142', '#aa759f', '#75b5aa'
 const ZERO_COLOR = '#313032';
 
 export interface HexMarker {
-	/** The marker's 4-byte word ([address, address+4)) is highlighted. */
+	/** Start of the highlighted range [address, address+length). */
 	address: number;
-	/** Style key; HexPane maps it to a color (e.g. 'pc', 'sp', 'fp'). */
+	/** Range length in bytes (default 4: one word). */
+	length?: number;
+	/** Style key; HexPane maps it to a color (e.g. 'pc', 'sp', 'frame'). */
 	kind: string;
 }
 
@@ -92,7 +94,7 @@ export function hexdump(
 				color:
 					value === 0 || dimmed[i] ? ZERO_COLOR : COLORS[value % COLORS.length],
 				markers: markers
-					.filter((m) => m.address <= address && address < m.address + 4)
+					.filter((m) => m.address <= address && address < m.address + (m.length ?? 4))
 					.map((m) => m.kind),
 				changed: previous !== undefined && previous[i] !== value,
 			});

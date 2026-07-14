@@ -53,6 +53,8 @@
 					{ label: 'SP', kind: 'sp' },
 					{ label: 'FP', kind: 'fp' },
 					{ label: 'SP=FP', kind: 'spfp' },
+					{ label: 'LR', kind: 'lr' },
+					{ label: 'frame', kind: 'frame' },
 					{ label: 'changed', kind: 'changed' },
 				]}
 			/>

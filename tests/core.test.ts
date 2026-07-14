@@ -398,6 +398,18 @@ describe('pageBase', () => {
 });
 
 describe('hexdump markers', () => {
+	it('supports range markers (stack-frame band)', () => {
+		const rows = hexdump(new Uint8Array(32), 0xffe0, {
+			markers: [{ address: 0xffe8, length: 16, kind: 'frame' }],
+		});
+		const frames = rows.flatMap((r) => r.bytes).map((b) => b.markers.includes('frame'));
+		expect(frames.filter(Boolean).length).toBe(16);
+		expect(frames[8]).toBe(true); // 0xffe8
+		expect(frames[23]).toBe(true); // 0xfff7
+		expect(frames[7]).toBe(false);
+		expect(frames[24]).toBe(false);
+	});
+
 	it('supports multiple overlapping markers with kinds', () => {
 		const rows = hexdump(new Uint8Array(16), 0xff80, {
 			markers: [

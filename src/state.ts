@@ -12,7 +12,7 @@ import {
 	UDF_WORD,
 	longestStraightRun,
 } from './core/machine';
-import { hexdump, pageBase, type DumpRow } from './core/hexdump';
+import { hexdump, pageBase, type DumpRow, type HexMarker } from './core/hexdump';
 import helloSource from '../examples/hello.s?raw';
 import keyboardSource from '../examples/keyboard.s?raw';
 import { buildLineMap, lineAt, type LineRange } from './core/linemap';
@@ -137,12 +137,24 @@ function refresh(): void {
 		previousStackBase = stackBase;
 	}
 	const stackBytes = machine.readMemory(stackBase, STACK_VIEW_BYTES);
+	const sp = machine.sp();
+	const fp = machine.fp();
+	const stackMarkers: HexMarker[] = [
+		{ address: sp, kind: 'sp' },
+		{ address: fp, kind: 'fp' },
+	];
+	// Frame visualization, assuming the standard prologue (`push {fp, lr}`
+	// then `mov fp, sp`): FP is the SP right after the prologue, the saved
+	// FP sits at [fp], the saved LR at [fp+4]. The frame band spans the
+	// locals plus those two saved words; the LR slot is shaded separately.
+	const stackTop = MEMORY_MAP.stack.base + MEMORY_MAP.stack.size;
+	if (fp !== 0 && fp >= MEMORY_MAP.stack.base && fp + 8 <= stackTop && sp <= fp) {
+		stackMarkers.unshift({ address: sp, length: fp + 8 - sp, kind: 'frame' });
+		stackMarkers.push({ address: fp + 4, kind: 'lr' });
+	}
 	stackStore.set(
 		hexdump(stackBytes, stackBase, {
-			markers: [
-				{ address: machine.sp(), kind: 'sp' },
-				{ address: machine.fp(), kind: 'fp' },
-			],
+			markers: stackMarkers,
 			previous: previousStackBytes,
 		}),
 	);

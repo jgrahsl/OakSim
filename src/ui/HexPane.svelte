@@ -3,7 +3,7 @@
 
 	export interface LegendItem {
 		label: string;
-		kind: 'pc' | 'sp' | 'fp' | 'spfp' | 'cursor' | 'changed';
+		kind: 'pc' | 'sp' | 'fp' | 'spfp' | 'lr' | 'frame' | 'cursor' | 'changed';
 	}
 
 	/** Swatch colors matching the byte-mark styles below. */
@@ -12,6 +12,8 @@
 		sp: '#6a9fb5',
 		fp: '#d28445',
 		spfp: '#aa759f',
+		lr: '#8a5a35',
+		frame: '#4a4a4c',
 		cursor: '#e0e0e0',
 		changed: '#90a959',
 	};
@@ -48,6 +50,8 @@
 			{#each row.bytes as byte, i (i)}
 				<span
 					class="hex"
+					class:mark-frame={byte.markers.includes('frame')}
+					class:mark-lr={byte.markers.includes('lr')}
 					class:mark-pc={byte.markers.includes('pc')}
 					class:mark-sp={byte.markers.includes('sp')}
 					class:mark-fp={byte.markers.includes('fp')}
@@ -95,6 +99,16 @@
 	}
 	.changed {
 		background: rgba(144, 169, 89, 0.45);
+		border-radius: 2px;
+	}
+	/* Stack-frame band (SP up to the saved fp/lr words) and the saved-LR
+	   slot inside it; declared before the solid pointer marks so SP/FP
+	   stay visible on top. */
+	.hex.mark-frame {
+		background: rgba(224, 224, 224, 0.09);
+	}
+	.hex.mark-lr {
+		background: rgba(210, 132, 69, 0.35);
 		border-radius: 2px;
 	}
 	/* Per-kind marker highlights (see the legend swatches above): solid
