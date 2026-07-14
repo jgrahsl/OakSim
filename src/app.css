@@ -52,7 +52,12 @@ button {
 }
 
 #buttons {
+	align-items: center;
+	display: flex;
 	flex: 0 1 auto;
+	flex-wrap: nowrap;
+	gap: 4px;
+	overflow: hidden;
 	padding: 4px;
 }
 
@@ -62,13 +67,15 @@ button {
 	border: 1px dashed #313032;
 	border-radius: 3px;
 	color: inherit;
+	flex: 0 0 auto;
 	font: inherit;
-	font-size: 14px;
-	padding: 10px;
+	font-size: 13px;
+	padding: 6px 9px;
 }
 
 #buttons button.active {
-	border-color: white;
+	background: rgba(106, 159, 181, 0.18);
+	border-color: #6a9fb5;
 }
 
 #buttons button:disabled {

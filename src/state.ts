@@ -49,8 +49,8 @@ const slotKey = (slot: number) => `oaksim.program.${slot}`;
 const storage: Storage | null =
 	typeof localStorage === 'undefined' ? null : localStorage;
 
-/** Bytes of code memory shown in the memory panel (0x10000–0x10100). */
-const MEMORY_VIEW_BYTES = 256;
+/** Bytes of code memory shown in the memory panel (0x10000–0x10080). */
+const MEMORY_VIEW_BYTES = 128;
 /**
  * Stack window shown in the stack panel. The stack descends from the top
  * of the region (SP starts at 0x10000), so the active bytes are the LAST

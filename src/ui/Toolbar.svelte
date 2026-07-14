@@ -59,7 +59,7 @@
 		title="Built-in keyboard demo: hjkl move, space stamps (read-only)"
 		onclick={() => onselectslot('keyboard')}
 	>
-		Keyboard
+		Kbd
 	</button>
 	{#each Array(SLOT_COUNT) as _, slot (slot)}
 		<button
@@ -67,23 +67,18 @@
 			title={`Program slot ${slot} (autosaved in your browser)`}
 			onclick={() => onselectslot(slot)}
 		>
-			Pgm {slot}
+			{slot}
 		</button>
 	{/each}
 </div>
 
 <style>
 	input {
-		width: 50px;
+		width: 44px;
 	}
 	.separator {
+		align-self: stretch;
 		border-left: 1px dashed #313032;
-		display: inline-block;
-		height: 1.8em;
-		margin: 0 6px;
-		vertical-align: middle;
-	}
-	button.active {
-		border-color: white;
+		margin: 0 4px;
 	}
 </style>
