@@ -8,7 +8,7 @@ import { Assembler } from './core/assembler';
 import {
 	Machine,
 	MEMORY_MAP,
-	MAX_STRAIGHT_RUN,
+	MAX_RUN_COST,
 	UDF_WORD,
 	longestStraightRun,
 } from './core/machine';
@@ -207,11 +207,11 @@ function assembleNow(): void {
 	}
 	errorLineStore.set(null);
 	const run = longestStraightRun(result.bytes);
-	if (run > MAX_STRAIGHT_RUN) {
+	if (run.cost > MAX_RUN_COST) {
 		assembleErrorStore.set(
-			`Program has ${run} consecutive non-branch instructions; the emulator ` +
-				`supports at most ${MAX_STRAIGHT_RUN} in a row — split the sequence ` +
-				`with a branch.`,
+			`Program has a straight-line stretch of ${run.instructions} instructions ` +
+				`whose translation is too large for the emulator (cost ${run.cost} of ` +
+				`max ${MAX_RUN_COST}) — insert a branch to split it.`,
 		);
 		refresh();
 		return;

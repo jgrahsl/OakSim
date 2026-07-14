@@ -98,8 +98,10 @@
 	.editor :global(.cm-editor) {
 		height: 100%;
 	}
+	/* PC line: yellow, reserved exclusively for the PC across the UI;
+	   distinct from the cursor's active-line (dark) and selection. */
 	.editor :global(.cm-pc-line) {
-		background: rgba(106, 159, 181, 0.28);
+		background: rgba(244, 191, 117, 0.3);
 	}
 	.editor :global(.cm-error-line) {
 		background: rgba(172, 65, 66, 0.45);

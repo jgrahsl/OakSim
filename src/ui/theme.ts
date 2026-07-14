@@ -35,7 +35,7 @@ export const oakTheme: Extension = [
 			{ tag: tags.comment, color: '#8f5536' },
 			{ tag: tags.number, color: '#aa759f' },
 			{ tag: tags.atom, color: '#aa759f' },
-			{ tag: tags.string, color: '#f4bf75' },
+			{ tag: tags.string, color: '#75b5aa' }, // no yellow: reserved for PC
 			{ tag: tags.keyword, color: '#ac4142' },
 			{ tag: tags.tagName, color: '#ac4142' },
 			{ tag: tags.variableName, color: '#90a959' },

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { Assembler } from '../src/core/assembler';
 import { uc } from '../src/core/engine';
-import { Machine, MEMORY_MAP, CODE_END } from '../src/core/machine';
+import { Machine, MEMORY_MAP, CODE_END, MAX_RUN_COST, longestStraightRun } from '../src/core/machine';
 import { hexdump, pageBase } from '../src/core/hexdump';
 
 // Shared instances: Keystone/Unicorn contexts are heavyweight inside the
@@ -339,6 +339,45 @@ describe('hexdump', () => {
 		expect(rows[0].bytes[3].color).not.toBe(dimColor); // instruction stays lit
 		expect(rows[0].bytes[3].hex).toBe('E3');
 		expect(rows[0].bytes[4].hex).toBe('F0'); // hex still shown, just dim
+	});
+});
+
+describe('longestStraightRun (translation-cost guard)', () => {
+	it('allows 55 plain instructions (cost under budget)', () => {
+		const run = longestStraightRun(assembleOk('.rept 55\n\tmov r0, #1\n.endr'));
+		expect(run.instructions).toBe(55);
+		expect(run.cost).toBe(550);
+		expect(run.cost).toBeLessThanOrEqual(MAX_RUN_COST);
+	});
+
+	it('rejects runs whose cost exceeds the budget', () => {
+		const run = longestStraightRun(assembleOk('.rept 65\n\tmov r0, #1\n.endr'));
+		expect(run.cost).toBeGreaterThan(MAX_RUN_COST);
+	});
+
+	it('weights ldm/stm by register count (traps at 17 on the engine)', () => {
+		// 12 consecutive 12-register ldm: cost 12 * 58 = 696 > budget,
+		// even though only 12 instructions long.
+		const run = longestStraightRun(
+			assembleOk('.rept 12\n\tldm sp, {r0-r11}\n.endr'),
+		);
+		expect(run.instructions).toBe(12);
+		expect(run.cost).toBeGreaterThan(MAX_RUN_COST);
+	});
+
+	it('branches reset the accumulator', () => {
+		const run = longestStraightRun(
+			assembleOk('.rept 40\n\tmov r0, #1\n.endr\nb .\n.rept 40\n\tmov r0, #1\n.endr'),
+		);
+		expect(run.cost).toBe(400);
+	});
+
+	it('a 60-instruction straight-line program executes and steps', () => {
+		machine.loadProgram(assembleOk('.rept 60\n\tadd r0, r0, #1\n.endr\nb .'));
+		const result = machine.run(200); // budget stop inside the long block
+		expect(result.ok, result.ok ? '' : result.message).toBe(true);
+		const r0 = machine.snapshotRegisters().find((r) => r.name === 'R0')!;
+		expect(r0.value).toBe(60);
 	});
 });
 

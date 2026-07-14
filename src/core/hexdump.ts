@@ -19,8 +19,9 @@ export interface DumpRow {
 	bytes: DumpByte[];
 }
 
-/** Base16-ish accent palette; byte value picks a color. */
-const COLORS = ['#e0e0e0', '#90a959', '#6a9fb5', '#ac4142', '#aa759f', '#f4bf75'];
+/** Base16-ish accent palette; byte value picks a color. (No yellow:
+ *  that's reserved for the PC highlight across the UI.) */
+const COLORS = ['#e0e0e0', '#90a959', '#6a9fb5', '#ac4142', '#aa759f', '#75b5aa'];
 const ZERO_COLOR = '#313032';
 
 export interface HexMarker {

@@ -8,12 +8,12 @@
 
 	/** Swatch colors matching the byte-mark styles below. */
 	const SWATCH: Record<LegendItem['kind'], string> = {
-		pc: '#6a9fb5',
+		pc: '#f4bf75', // yellow is reserved for the PC across the UI
 		sp: '#6a9fb5',
 		fp: '#d28445',
 		spfp: '#aa759f',
 		cursor: '#e0e0e0',
-		changed: '#f4bf75',
+		changed: '#90a959',
 	};
 
 	let {
@@ -94,7 +94,7 @@
 		margin-left: 1ch;
 	}
 	.changed {
-		background: rgba(244, 191, 117, 0.45);
+		background: rgba(144, 169, 89, 0.45);
 		border-radius: 2px;
 	}
 	/* Per-kind marker highlights (see the legend swatches above): solid
@@ -102,7 +102,7 @@
 	   color must be overridden, hence !important. Declared after
 	   .changed so a marked-and-changed byte shows the marker. */
 	.hex.mark-pc {
-		background: #6a9fb5;
+		background: #f4bf75;
 		border-radius: 2px;
 		color: #0e0e0e !important;
 	}

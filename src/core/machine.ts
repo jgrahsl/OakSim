@@ -35,7 +35,6 @@ export const CODE_END = MEMORY_MAP.code.base + MEMORY_MAP.code.size;
  */
 export const UDF_WORD = 0xe7f000f0;
 const FILL_STRIDE_WORDS = 16;
-export const MAX_STRAIGHT_RUN = 32;
 
 /** Fill pattern for a code-region range starting at word offset 0. */
 function buildFill(byteLength: number): Uint8Array {
@@ -59,22 +58,63 @@ function endsBlock(word: number): boolean {
 }
 
 /**
- * Longest run of consecutive words with no block-ending instruction.
- * (Data pools count as instructions — a conservative over-estimate.)
+ * The engine interprets each translation block from a fixed-size
+ * bytecode buffer, and installed hooks inflate every instruction's
+ * bytecode; an overflowing block traps the WASM runtime when executed.
+ * Measured trap points (with hooks, per straight-line block): 98 movs,
+ * 70 single-memory-access instructions, 17 twelve-register ldm. That
+ * fits a cost model of 10 units per instruction plus 4 per memory word
+ * transferred (mov 10, ldr/str 14, ldm-12 58), with the measured buffer
+ * at ~970 units. The budget keeps a ~1/3 safety margin.
  */
-export function longestStraightRun(bytes: Uint8Array): number {
+export const MAX_RUN_COST = 640;
+
+function instructionCost(word: number): number {
+	if ((word & 0x0e000000) === 0x08000000) {
+		// LDM/STM: cost scales with the register list.
+		let registers = 0;
+		for (let bit = 0; bit < 16; bit++) {
+			if (word & (1 << bit)) registers++;
+		}
+		return 10 + 4 * registers;
+	}
+	if ((word & 0x0c000000) === 0x04000000) return 14; // LDR/STR/LDRB/STRB
+	if ((word & 0x0e000090) === 0x00000090) return 14; // LDRH/STRH/dual/swap/mul
+	return 10;
+}
+
+export interface StraightRun {
+	/** Translation-cost units of the most expensive straight-line run. */
+	cost: number;
+	/** Instruction count of that run. */
+	instructions: number;
+}
+
+/**
+ * Most expensive run of consecutive words with no block-ending
+ * instruction. (Data pools count as instructions — a conservative
+ * over-estimate.)
+ */
+export function longestStraightRun(bytes: Uint8Array): StraightRun {
 	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-	let longest = 0;
-	let current = 0;
+	const worst: StraightRun = { cost: 0, instructions: 0 };
+	let cost = 0;
+	let instructions = 0;
 	for (let offset = 0; offset + 4 <= bytes.length; offset += 4) {
-		if (endsBlock(view.getUint32(offset, true))) {
-			current = 0;
+		const word = view.getUint32(offset, true);
+		if (endsBlock(word)) {
+			cost = 0;
+			instructions = 0;
 		} else {
-			current++;
-			longest = Math.max(longest, current);
+			cost += instructionCost(word);
+			instructions++;
+			if (cost > worst.cost) {
+				worst.cost = cost;
+				worst.instructions = instructions;
+			}
 		}
 	}
-	return longest;
+	return worst;
 }
 
 interface RegisterDef {

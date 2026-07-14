@@ -27,6 +27,6 @@
 		padding-right: 20px;
 	}
 	td.changed {
-		color: #f4bf75;
+		color: #90a959;
 	}
 </style>
