@@ -145,13 +145,15 @@ function refresh(): void {
 	];
 	// Frame visualization, assuming the standard prologue (`push {fp, lr}`
 	// then `mov fp, sp`): FP is the SP right after the prologue, the saved
-	// FP sits at [fp], the saved LR at [fp+4], and the pre-prologue
-	// ("initial") SP was fp+8. The dark-blue frame band spans [fp-4,
-	// initial SP); the LR slot is shaded separately, and the light-blue
-	// SP mark renders on top (covering the band right after the prologue).
+	// FP sits at [fp], the saved LR at [fp+4]. The dark-blue band is the
+	// area reserved for locals — from the current SP up to FP — with the
+	// light-blue SP mark rendering over its lowest word. The LR slot is
+	// shaded separately.
 	const stackTop = MEMORY_MAP.stack.base + MEMORY_MAP.stack.size;
-	if (fp !== 0 && fp - 4 >= MEMORY_MAP.stack.base && fp + 8 <= stackTop && sp <= fp) {
-		stackMarkers.unshift({ address: fp - 4, length: 12, kind: 'frame' });
+	if (fp !== 0 && fp >= MEMORY_MAP.stack.base && fp + 8 <= stackTop && sp <= fp) {
+		if (sp < fp) {
+			stackMarkers.unshift({ address: sp, length: fp - sp, kind: 'frame' });
+		}
 		stackMarkers.push({ address: fp + 4, kind: 'lr' });
 	}
 	stackStore.set(
