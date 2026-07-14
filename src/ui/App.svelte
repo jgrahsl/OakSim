@@ -47,16 +47,36 @@
 			</div>
 			<HexPane
 				id="stack"
-				title="Stack top · SP blue · FP orange · SP=FP purple"
+				title="Stack top"
 				rows={$stack}
+				legend={[
+					{ label: 'SP', kind: 'sp' },
+					{ label: 'FP', kind: 'fp' },
+					{ label: 'SP=FP', kind: 'spfp' },
+					{ label: 'changed', kind: 'changed' },
+				]}
 			/>
-			<HexPane id="memory" title="Code · PC underlined" rows={$memory} />
-			<HexPane id="data" title="Data · WRAM @ 0x40000" rows={$data} />
+			<HexPane
+				id="memory"
+				title="Code"
+				rows={$memory}
+				legend={[{ label: 'PC', kind: 'pc' }]}
+			/>
+			<HexPane
+				id="data"
+				title="Data · WRAM @ 0x40000"
+				rows={$data}
+				legend={[{ label: 'changed', kind: 'changed' }]}
+			/>
 		</div>
 	</div>
 	<HexPane
 		id="vram"
-		title="Character memory · VRAM @ 0x60000 · cursor underlined"
+		title="Character memory · VRAM @ 0x60000"
 		rows={$vram}
+		legend={[
+			{ label: 'cursor', kind: 'cursor' },
+			{ label: 'changed', kind: 'changed' },
+		]}
 	/>
 </div>
