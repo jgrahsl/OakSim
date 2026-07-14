@@ -42,6 +42,27 @@ export interface HexdumpOptions {
 	dimWord?: number;
 }
 
+/**
+ * Base address of the page-aligned view window (pageSize bytes) that
+ * contains `address`, clamped to stay inside the region. Addresses
+ * outside the region clamp to its first/last page — e.g. the initial SP
+ * one past the stack's top shows the topmost page.
+ */
+export function pageBase(
+	address: number,
+	regionBase: number,
+	regionSize: number,
+	pageSize: number,
+): number {
+	const lastPage = regionBase + regionSize - pageSize;
+	if (address < regionBase) return regionBase;
+	if (address >= regionBase + regionSize) return lastPage;
+	return Math.min(
+		lastPage,
+		regionBase + Math.floor((address - regionBase) / pageSize) * pageSize,
+	);
+}
+
 export function hexdump(
 	bytes: Uint8Array,
 	baseAddress: number,

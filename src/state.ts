@@ -12,7 +12,7 @@ import {
 	UDF_WORD,
 	longestStraightRun,
 } from './core/machine';
-import { hexdump, type DumpRow } from './core/hexdump';
+import { hexdump, pageBase, type DumpRow } from './core/hexdump';
 import helloSource from '../examples/hello.s?raw';
 import keyboardSource from '../examples/keyboard.s?raw';
 import { buildLineMap, lineAt, type LineRange } from './core/linemap';
@@ -49,16 +49,13 @@ const slotKey = (slot: number) => `oaksim.program.${slot}`;
 const storage: Storage | null =
 	typeof localStorage === 'undefined' ? null : localStorage;
 
-/** Bytes of code memory shown in the memory panel (0x10000–0x10080). */
-const MEMORY_VIEW_BYTES = 128;
 /**
- * Stack window shown in the stack panel. The stack descends from the top
- * of the region (SP starts at 0x10000), so the active bytes are the LAST
- * ones — show the topmost 256 bytes (0xFF00–0xFFFF).
+ * The code and stack panes are 128-byte windows that page (in view-size
+ * multiples) to follow their pointers: the code view keeps PC visible,
+ * the stack view keeps SP visible (and FP whenever it shares SP's page).
  */
+const MEMORY_VIEW_BYTES = 128;
 const STACK_VIEW_BYTES = 128;
-const STACK_VIEW_BASE =
-	MEMORY_MAP.stack.base + MEMORY_MAP.stack.size - STACK_VIEW_BYTES;
 /** Data window shown in the data panel (start of working RAM). */
 const DATA_VIEW_BYTES = 128;
 const DATA_VIEW_BASE = MEMORY_MAP.wram.base;
@@ -110,21 +107,38 @@ let assembleTimer: ReturnType<typeof setTimeout> | undefined;
 let runInterval: ReturnType<typeof setInterval> | undefined;
 let runFrame: number | undefined;
 let previousStackBytes: Uint8Array | undefined;
+let previousStackBase: number | undefined;
 let previousDataBytes: Uint8Array | undefined;
 let previousVramBytes: Uint8Array | undefined;
 let lineMap: LineRange[] | null = null;
 
 function refresh(): void {
 	registersStore.set(machine.snapshotRegisters());
+	const codeBase = pageBase(
+		machine.pc(),
+		MEMORY_MAP.code.base,
+		MEMORY_MAP.code.size,
+		MEMORY_VIEW_BYTES,
+	);
 	memoryStore.set(
-		hexdump(machine.readMemory(MEMORY_MAP.code.base, MEMORY_VIEW_BYTES), MEMORY_MAP.code.base, {
+		hexdump(machine.readMemory(codeBase, MEMORY_VIEW_BYTES), codeBase, {
 			markers: [{ address: machine.pc(), kind: 'pc' }],
 			dimWord: UDF_WORD, // render the fill pattern dimmed — background, not data
 		}),
 	);
-	const stackBytes = machine.readMemory(STACK_VIEW_BASE, STACK_VIEW_BYTES);
+	const stackBase = pageBase(
+		machine.sp(),
+		MEMORY_MAP.stack.base,
+		MEMORY_MAP.stack.size,
+		STACK_VIEW_BYTES,
+	);
+	if (stackBase !== previousStackBase) {
+		previousStackBytes = undefined; // page jumped: old bytes are other addresses
+		previousStackBase = stackBase;
+	}
+	const stackBytes = machine.readMemory(stackBase, STACK_VIEW_BYTES);
 	stackStore.set(
-		hexdump(stackBytes, STACK_VIEW_BASE, {
+		hexdump(stackBytes, stackBase, {
 			markers: [
 				{ address: machine.sp(), kind: 'sp' },
 				{ address: machine.fp(), kind: 'fp' },

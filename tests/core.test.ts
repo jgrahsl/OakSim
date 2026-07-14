@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { Assembler } from '../src/core/assembler';
 import { uc } from '../src/core/engine';
 import { Machine, MEMORY_MAP, CODE_END } from '../src/core/machine';
-import { hexdump } from '../src/core/hexdump';
+import { hexdump, pageBase } from '../src/core/hexdump';
 
 // Shared instances: Keystone/Unicorn contexts are heavyweight inside the
 // Emscripten heap, so we reuse one of each across tests.
@@ -339,6 +339,22 @@ describe('hexdump', () => {
 		expect(rows[0].bytes[3].color).not.toBe(dimColor); // instruction stays lit
 		expect(rows[0].bytes[3].hex).toBe('E3');
 		expect(rows[0].bytes[4].hex).toBe('F0'); // hex still shown, just dim
+	});
+});
+
+describe('pageBase', () => {
+	const STACK = { base: 0x8000, size: 0x8000 };
+	it('picks the page containing the address', () => {
+		expect(pageBase(0xff60, STACK.base, STACK.size, 0x80)).toBe(0xff00);
+		expect(pageBase(0x10084, 0x10000, 0x30000, 0x80)).toBe(0x10080);
+		expect(pageBase(0x10000, 0x10000, 0x30000, 0x80)).toBe(0x10000);
+	});
+
+	it('clamps addresses outside the region to the first/last page', () => {
+		// Initial SP sits one past the stack top: show the topmost page.
+		expect(pageBase(0x10000, STACK.base, STACK.size, 0x80)).toBe(0xff80);
+		expect(pageBase(0x100, STACK.base, STACK.size, 0x80)).toBe(0x8000);
+		expect(pageBase(0xffffffff, STACK.base, STACK.size, 0x80)).toBe(0xff80);
 	});
 });
 
