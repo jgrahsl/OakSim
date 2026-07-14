@@ -99,9 +99,9 @@
 		height: 100%;
 	}
 	.editor :global(.cm-pc-line) {
-		background: rgba(106, 159, 181, 0.16);
+		background: rgba(106, 159, 181, 0.28);
 	}
 	.editor :global(.cm-error-line) {
-		background: rgba(172, 65, 66, 0.28);
+		background: rgba(172, 65, 66, 0.45);
 	}
 </style>

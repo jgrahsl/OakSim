@@ -93,34 +93,37 @@
 	.hex {
 		margin-left: 1ch;
 	}
-	/* Per-kind marker highlights (see the legend swatches above). */
-	.hex.mark-pc {
-		background: rgba(106, 159, 181, 0.35);
+	.changed {
+		background: rgba(244, 191, 117, 0.45);
 		border-radius: 2px;
 	}
+	/* Per-kind marker highlights (see the legend swatches above): solid
+	   backgrounds with dark text for contrast; the inline per-byte value
+	   color must be overridden, hence !important. Declared after
+	   .changed so a marked-and-changed byte shows the marker. */
+	.hex.mark-pc {
+		background: #6a9fb5;
+		border-radius: 2px;
+		color: #0e0e0e !important;
+	}
 	.hex.mark-sp {
-		background: rgba(106, 159, 181, 0.3);
-		text-decoration: underline;
-		text-decoration-color: #6a9fb5;
+		background: #6a9fb5;
+		border-radius: 2px;
+		color: #0e0e0e !important;
 	}
 	.hex.mark-fp {
-		background: rgba(210, 132, 69, 0.3);
-		text-decoration: underline;
-		text-decoration-color: #d28445;
+		background: #d28445;
+		border-radius: 2px;
+		color: #0e0e0e !important;
 	}
 	/* SP and FP on the same word. */
 	.hex.mark-sp.mark-fp {
-		background: rgba(170, 117, 159, 0.4);
-		text-decoration-color: #aa759f;
+		background: #aa759f;
 	}
 	.hex.mark-cursor {
-		background: rgba(224, 224, 224, 0.15);
-		text-decoration: underline;
-		text-decoration-color: #e0e0e0;
-	}
-	.changed {
-		background: rgba(244, 191, 117, 0.28);
+		background: #e0e0e0;
 		border-radius: 2px;
+		color: #0e0e0e !important;
 	}
 	.ascii {
 		margin-left: 1ch;
