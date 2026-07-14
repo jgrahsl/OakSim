@@ -18,7 +18,9 @@
 			{#each row.bytes as byte, i (i)}
 				<span
 					class="hex"
-					class:marked={byte.marked}
+					class:marked={byte.markers.length > 0}
+					class:mark-sp={byte.markers.includes('sp')}
+					class:mark-fp={byte.markers.includes('fp')}
 					class:changed={byte.changed}
 					style="color:{byte.color}"
 				>
@@ -49,6 +51,15 @@
 	}
 	.hex.marked {
 		text-decoration: underline;
+	}
+	/* Pointer-specific highlights (stack pane: SP blue, FP orange). */
+	.hex.mark-sp {
+		background: rgba(106, 159, 181, 0.3);
+		text-decoration-color: #6a9fb5;
+	}
+	.hex.mark-fp {
+		background: rgba(210, 132, 69, 0.3);
+		text-decoration-color: #d28445;
 	}
 	.changed {
 		background: rgba(244, 191, 117, 0.28);

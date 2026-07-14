@@ -114,14 +114,17 @@ function refresh(): void {
 	registersStore.set(machine.snapshotRegisters());
 	memoryStore.set(
 		hexdump(machine.readMemory(MEMORY_MAP.code.base, MEMORY_VIEW_BYTES), MEMORY_MAP.code.base, {
-			marker: machine.pc(),
+			markers: [{ address: machine.pc(), kind: 'pc' }],
 			dimWord: UDF_WORD, // render the fill pattern dimmed — background, not data
 		}),
 	);
 	const stackBytes = machine.readMemory(STACK_VIEW_BASE, STACK_VIEW_BYTES);
 	stackStore.set(
 		hexdump(stackBytes, STACK_VIEW_BASE, {
-			marker: machine.sp(),
+			markers: [
+				{ address: machine.sp(), kind: 'sp' },
+				{ address: machine.fp(), kind: 'fp' },
+			],
 			previous: previousStackBytes,
 		}),
 	);
@@ -137,7 +140,9 @@ function refresh(): void {
 	const vramBytes = machine.readMemory(MEMORY_MAP.vram.base, VRAM_VIEW_BYTES);
 	vramStore.set(
 		hexdump(vramBytes, MEMORY_MAP.vram.base, {
-			marker: MEMORY_MAP.vram.base + crtcState.cursorAddress * 2, // cursor cell
+			markers: [
+				{ address: MEMORY_MAP.vram.base + crtcState.cursorAddress * 2, kind: 'cursor' },
+			],
 			width: 32,
 			previous: previousVramBytes,
 		}),

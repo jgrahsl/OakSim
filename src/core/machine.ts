@@ -337,6 +337,11 @@ export class Machine {
 		return this.cpu.regRead(uc.ARM_REG_SP);
 	}
 
+	/** R11, the frame pointer under the AAPCS convention. */
+	fp(): number {
+		return this.cpu.regRead(uc.ARM_REG_R11);
+	}
+
 	/**
 	 * Read all registers, marking those that changed since the previous
 	 * snapshot (used for highlighting in the UI).

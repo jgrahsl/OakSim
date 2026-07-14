@@ -306,16 +306,16 @@ describe('hexdump', () => {
 		const bytes = new Uint8Array(32);
 		bytes[0] = 0x41; // 'A'
 		bytes[1] = 0x00;
-		const rows = hexdump(bytes, 0x10000, { marker: 0x10000 });
+		const rows = hexdump(bytes, 0x10000, { markers: [{ address: 0x10000, kind: 'pc' }] });
 		expect(rows.length).toBe(2);
 		expect(rows[0].offset).toBe('0x00010000');
 		expect(rows[0].bytes[0].hex).toBe('41');
 		expect(rows[0].bytes[0].ascii).toBe('A');
 		expect(rows[0].bytes[1].ascii).toBe('.');
 		// Marker word (PC/SP) covers the first 4 bytes only.
-		expect(rows[0].bytes.slice(0, 4).every((b) => b.marked)).toBe(true);
-		expect(rows[0].bytes[4].marked).toBe(false);
-		expect(rows[1].bytes.every((b) => !b.marked)).toBe(true);
+		expect(rows[0].bytes.slice(0, 4).every((b) => b.markers.includes('pc'))).toBe(true);
+		expect(rows[0].bytes[4].markers).toEqual([]);
+		expect(rows[1].bytes.every((b) => b.markers.length === 0)).toBe(true);
 	});
 
 	it('flags bytes that differ from the previous snapshot', () => {
@@ -339,5 +339,20 @@ describe('hexdump', () => {
 		expect(rows[0].bytes[3].color).not.toBe(dimColor); // instruction stays lit
 		expect(rows[0].bytes[3].hex).toBe('E3');
 		expect(rows[0].bytes[4].hex).toBe('F0'); // hex still shown, just dim
+	});
+});
+
+describe('hexdump markers', () => {
+	it('supports multiple overlapping markers with kinds', () => {
+		const rows = hexdump(new Uint8Array(16), 0xff80, {
+			markers: [
+				{ address: 0xff84, kind: 'sp' },
+				{ address: 0xff84, kind: 'fp' },
+				{ address: 0xff8c, kind: 'fp' },
+			],
+		});
+		expect(rows[0].bytes[4].markers).toEqual(['sp', 'fp']); // overlap
+		expect(rows[0].bytes[12].markers).toEqual(['fp']);
+		expect(rows[0].bytes[0].markers).toEqual([]);
 	});
 });

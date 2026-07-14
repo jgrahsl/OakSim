@@ -7,9 +7,9 @@ export interface DumpByte {
 	hex: string;
 	ascii: string;
 	color: string;
-	/** True when this byte is inside the 4-byte word at the marker address
-	 *  (PC for code views, SP for stack views). */
-	marked: boolean;
+	/** Kinds of the markers whose 4-byte word contains this byte (e.g.
+	 *  'pc', 'sp', 'fp', 'cursor'); empty when unmarked. */
+	markers: string[];
 	/** True when this byte differs from the `previous` snapshot. */
 	changed: boolean;
 }
@@ -23,9 +23,16 @@ export interface DumpRow {
 const COLORS = ['#e0e0e0', '#90a959', '#6a9fb5', '#ac4142', '#aa759f', '#f4bf75'];
 const ZERO_COLOR = '#313032';
 
+export interface HexMarker {
+	/** The marker's 4-byte word ([address, address+4)) is highlighted. */
+	address: number;
+	/** Style key; HexPane maps it to a color (e.g. 'pc', 'sp', 'fp'). */
+	kind: string;
+}
+
 export interface HexdumpOptions {
-	/** Address whose 4-byte word gets the marker underline (PC/SP/cursor). */
-	marker?: number;
+	/** Addresses to highlight (PC, SP, FP, cursor, ...). */
+	markers?: HexMarker[];
 	/** Bytes per row. */
 	width?: number;
 	/** Previous snapshot; differing bytes are flagged as changed. */
@@ -40,7 +47,7 @@ export function hexdump(
 	baseAddress: number,
 	options: HexdumpOptions = {},
 ): DumpRow[] {
-	const { marker = -8, width = 16, previous, dimWord } = options;
+	const { markers = [], width = 16, previous, dimWord } = options;
 	const dimmed = new Uint8Array(bytes.length);
 	if (dimWord !== undefined) {
 		const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -62,7 +69,9 @@ export function hexdump(
 				ascii: printable && !dimmed[i] ? String.fromCharCode(value) : '.',
 				color:
 					value === 0 || dimmed[i] ? ZERO_COLOR : COLORS[value % COLORS.length],
-				marked: marker <= address && address < marker + 4,
+				markers: markers
+					.filter((m) => m.address <= address && address < m.address + 4)
+					.map((m) => m.kind),
 				changed: previous !== undefined && previous[i] !== value,
 			});
 		}
