@@ -102,17 +102,23 @@ export class Machine {
 	/** Set when the hook stopped execution for leaving the program. */
 	private leftProgram = false;
 
+	/** Cached buffers for reset() (which runs on every re-assemble). */
+	private readonly codeFill = buildFill(MEMORY_MAP.code.size);
+	private readonly zeros = new Uint8Array(
+		Math.max(MEMORY_MAP.stack.size, MEMORY_MAP.wram.size, MEMORY_MAP.vram.size),
+	);
+
 	constructor() {
 		this.cpu = new Cpu();
-		// Regions are mapped exactly once: remapping returns recycled,
-		// garbage-filled pages on this engine build. RAM regions keep
-		// their contents across reset (warm-reset semantics).
+		// RAM regions are mapped exactly once: remapping returns recycled,
+		// garbage-filled pages on this engine build. (The code region IS
+		// remapped per reset — see reset().)
 		const { stack, code, wram, vram, mmio } = MEMORY_MAP;
 		this.cpu.memMap(stack.base, stack.size, uc.PROT_READ | uc.PROT_WRITE);
 		this.cpu.memMap(code.base, code.size, uc.PROT_ALL);
 		this.cpu.memMap(wram.base, wram.size, uc.PROT_READ | uc.PROT_WRITE);
 		this.cpu.memMap(vram.base, vram.size, uc.PROT_READ | uc.PROT_WRITE);
-		this.cpu.memWrite(code.base, buildFill(code.size));
+		this.cpu.memWrite(code.base, this.codeFill);
 		this.bus = new Bus(this.cpu, mmio.base, mmio.size);
 
 		// This hook fires before each instruction executes and implements
@@ -189,20 +195,24 @@ export class Machine {
 	}
 
 	/**
-	 * Rebuild code memory and zero the CPU. The code region is unmapped,
-	 * remapped and fully refilled: plain rewrites do not reliably
-	 * invalidate multi-instruction translation blocks on this engine
-	 * build (stale code would keep executing), while remapping drops
-	 * them. The full refill replaces the recycled-page garbage the remap
-	 * brings in. RAM regions stay mapped (contents persist, and nothing
-	 * executes from them).
+	 * Rebuild code memory, clear all RAM, zero the CPU. The code region
+	 * is unmapped, remapped and fully refilled: plain rewrites do not
+	 * reliably invalidate multi-instruction translation blocks on this
+	 * engine build (stale code would keep executing), while remapping
+	 * drops them. The full refill replaces the recycled-page garbage the
+	 * remap brings in. RAM regions stay mapped (nothing executes from
+	 * them, so a plain zero-write suffices).
 	 */
 	reset(): void {
-		const { stack, code } = MEMORY_MAP;
+		const { stack, code, wram, vram } = MEMORY_MAP;
 		this.cpu.memUnmapSafe(code.base, code.size);
 		this.cpu.memMap(code.base, code.size, uc.PROT_ALL);
-		this.cpu.memWrite(code.base, buildFill(code.size));
+		this.cpu.memWrite(code.base, this.codeFill);
 		this.programLength = 0;
+
+		this.cpu.memWrite(stack.base, this.zeros.subarray(0, stack.size));
+		this.cpu.memWrite(wram.base, this.zeros.subarray(0, wram.size));
+		this.cpu.memWrite(vram.base, this.zeros.subarray(0, vram.size));
 
 		for (const def of this.registerDefs) {
 			this.cpu.regWrite(def.id, 0);

@@ -133,7 +133,8 @@ Rules that keep this maintainable:
 | `0x70000 – 0x71000` | 4 KiB | RW+hooks | MMIO window (peripheral registers, Bus-dispatched) |
 
 `reset()` wipes the loaded program (restoring the code fill pattern),
-zeroes registers, and resets attached peripherals; `loadProgram()` is
+zeroes all RAM regions and the registers, and resets attached
+peripherals; `loadProgram()` is
 reset + write + UDF terminator; `step(n)` single-steps with
 `until = pc+4` and `run(budget)` batch-executes (see the engine notes),
 both converting engine exceptions into `StepResult` values. Devices in
@@ -247,8 +248,8 @@ Facts about the current engine that the code works around or relies on:
   translation blocks**, so `reset()` unmaps + remaps the code region
   (dropping its blocks) and fully refills it with the pattern — remapped
   pages come back with recycled garbage otherwise. Bulk `mem_write` is
-  fine (192 KiB in ~0.1 ms). RAM regions stay mapped and keep their
-  contents across reset (warm-reset semantics, like real DRAM).
+  fine (192 KiB in ~0.1 ms). RAM regions (stack/WRAM/VRAM) stay mapped —
+  nothing executes from them — and are zeroed on every reset.
 - **Run mode batches instructions**: `Machine.run(budget)` executes up to
   `budget` instructions in one `emu_start` call via the hook's countdown
   (~tens of millions of instructions/sec), while `step()` pays one

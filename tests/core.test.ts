@@ -129,6 +129,17 @@ describe('Machine', () => {
 		expect(r7.changed).toBe(true);
 	});
 
+	it('reset clears all RAM regions', () => {
+		const pattern = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
+		machine.cpu.memWrite(0xff00, pattern); // stack
+		machine.cpu.memWrite(MEMORY_MAP.wram.base + 64, pattern);
+		machine.cpu.memWrite(MEMORY_MAP.vram.base + 410, pattern);
+		machine.reset();
+		expect(machine.readMemory(0xff00, 4).every((b) => b === 0)).toBe(true);
+		expect(machine.readMemory(MEMORY_MAP.wram.base + 64, 4).every((b) => b === 0)).toBe(true);
+		expect(machine.readMemory(MEMORY_MAP.vram.base + 410, 4).every((b) => b === 0)).toBe(true);
+	});
+
 	it('loadProgram writes the program to code memory', () => {
 		const bytes = assembleOk('mov r0, #5');
 		machine.loadProgram(bytes);
