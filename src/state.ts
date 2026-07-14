@@ -108,6 +108,39 @@ let runInterval: ReturnType<typeof setInterval> | undefined;
 let runFrame: number | undefined;
 let previousStackBytes: Uint8Array | undefined;
 let previousStackBase: number | undefined;
+/**
+ * Tracks where the prologue moved SP to, per frame. "SP after the
+ * prologue" is history rather than machine state, so it is captured
+ * when FP changes and extended through the unbroken run of consecutive
+ * SP-lowering instructions that follows (the prologue's sub/pushes);
+ * the first instruction that doesn't lower SP freezes it. Cached per FP
+ * value so returning into a caller restores its band.
+ */
+let frameFp = 0;
+let frameSp = 0;
+let frameFixed = true;
+let framePrevPc = -1;
+const frameSpCache = new Map<number, number>();
+
+function trackFrame(sp: number, fp: number, pc: number): void {
+	if (fp !== frameFp) {
+		const cached = frameSpCache.get(fp);
+		frameFp = fp;
+		frameSp = cached ?? sp;
+		frameFixed = cached !== undefined;
+		if (cached === undefined) {
+			frameSpCache.set(fp, sp);
+		}
+	} else if (!frameFixed && pc !== framePrevPc) {
+		if (sp < frameSp && pc === framePrevPc + 4) {
+			frameSp = sp; // contiguous SP-lowering instruction: still prologue
+			frameSpCache.set(fp, sp);
+		} else {
+			frameFixed = true;
+		}
+	}
+	framePrevPc = pc;
+}
 let previousDataBytes: Uint8Array | undefined;
 let previousVramBytes: Uint8Array | undefined;
 let lineMap: LineRange[] | null = null;
@@ -144,15 +177,16 @@ function refresh(): void {
 		{ address: fp, kind: 'fp' },
 	];
 	// Frame visualization, assuming the standard prologue (`push {fp, lr}`
-	// then `mov fp, sp`): FP is the SP right after the prologue, the saved
-	// FP sits at [fp], the saved LR at [fp+4]. The dark-blue band is the
-	// area reserved for locals — from the current SP up to FP — with the
-	// light-blue SP mark rendering over its lowest word. The LR slot is
-	// shaded separately.
+	// then `mov fp, sp`): FP is the SP right after `mov`, the saved FP
+	// sits at [fp], the saved LR at [fp+4]. The dark-blue band is the
+	// stack area the prologue allocated — from where the prologue moved
+	// SP to (see trackFrame) up to FP — and stays put when the body
+	// pushes temporaries below it. The LR slot is shaded separately.
+	trackFrame(sp, fp, machine.pc());
 	const stackTop = MEMORY_MAP.stack.base + MEMORY_MAP.stack.size;
 	if (fp !== 0 && fp >= MEMORY_MAP.stack.base && fp + 8 <= stackTop && sp <= fp) {
-		if (sp < fp) {
-			stackMarkers.unshift({ address: sp, length: fp - sp, kind: 'frame' });
+		if (frameFp === fp && frameSp < fp) {
+			stackMarkers.unshift({ address: frameSp, length: fp - frameSp, kind: 'frame' });
 		}
 		stackMarkers.push({ address: fp + 4, kind: 'lr' });
 	}
@@ -234,6 +268,10 @@ function assembleNow(): void {
 	}
 	assembleErrorStore.set(null);
 	machine.loadProgram(result.bytes);
+	frameSpCache.clear();
+	frameFp = 0;
+	frameFixed = true;
+	framePrevPc = -1;
 	lineMap = buildLineMap(
 		assembler,
 		currentSource,
