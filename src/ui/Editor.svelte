@@ -11,34 +11,43 @@
 		value,
 		onchange,
 		pcLine = null,
+		errorLine = null,
 	}: {
 		value: string;
 		onchange: (source: string) => void;
 		/** 0-based source line to mark as the current PC line. */
 		pcLine?: number | null;
+		/** 0-based source line to mark as the first syntax error. */
+		errorLine?: number | null;
 	} = $props();
 
-	// Line decoration marking the instruction at PC.
-	const setPcLine = StateEffect.define<number | null>();
-	const pcLineMark = Decoration.line({ class: 'cm-pc-line' });
-	const pcLineField: Extension = StateField.define({
-		create: () => Decoration.none,
-		update(marks, tr) {
-			marks = marks.map(tr.changes);
-			for (const effect of tr.effects) {
-				if (effect.is(setPcLine)) {
-					if (effect.value === null || effect.value >= tr.state.doc.lines) {
-						marks = Decoration.none;
-					} else {
-						const line = tr.state.doc.line(effect.value + 1);
-						marks = Decoration.set([pcLineMark.range(line.from)]);
+	/** A line decoration driven by a number-or-null effect. */
+	function lineMark(cssClass: string) {
+		const set = StateEffect.define<number | null>();
+		const mark = Decoration.line({ class: cssClass });
+		const field: Extension = StateField.define({
+			create: () => Decoration.none,
+			update(marks, tr) {
+				marks = marks.map(tr.changes);
+				for (const effect of tr.effects) {
+					if (effect.is(set)) {
+						if (effect.value === null || effect.value >= tr.state.doc.lines) {
+							marks = Decoration.none;
+						} else {
+							const line = tr.state.doc.line(effect.value + 1);
+							marks = Decoration.set([mark.range(line.from)]);
+						}
 					}
 				}
-			}
-			return marks;
-		},
-		provide: (field) => EditorView.decorations.from(field),
-	});
+				return marks;
+			},
+			provide: (f) => EditorView.decorations.from(f),
+		});
+		return { set, field };
+	}
+
+	const pcMark = lineMark('cm-pc-line');
+	const errorMark = lineMark('cm-error-line');
 
 	let host: HTMLDivElement;
 	let view: EditorView | undefined;
@@ -57,7 +66,8 @@
 				basicSetup,
 				StreamLanguage.define(gas),
 				oakTheme,
-				pcLineField,
+				pcMark.field,
+				errorMark.field,
 				EditorView.updateListener.of((update) => {
 					if (update.docChanged) {
 						onchange(update.state.doc.toString());
@@ -71,7 +81,11 @@
 	});
 
 	$effect(() => {
-		view?.dispatch({ effects: setPcLine.of(pcLine) });
+		view?.dispatch({ effects: pcMark.set.of(pcLine) });
+	});
+
+	$effect(() => {
+		view?.dispatch({ effects: errorMark.set.of(errorLine) });
 	});
 </script>
 
@@ -86,5 +100,8 @@
 	}
 	.editor :global(.cm-pc-line) {
 		background: rgba(106, 159, 181, 0.16);
+	}
+	.editor :global(.cm-error-line) {
+		background: rgba(172, 65, 66, 0.28);
 	}
 </style>

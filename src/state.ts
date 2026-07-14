@@ -16,6 +16,7 @@ import { hexdump, type DumpRow } from './core/hexdump';
 import helloSource from '../examples/hello.s?raw';
 import keyboardSource from '../examples/keyboard.s?raw';
 import { buildLineMap, lineAt, type LineRange } from './core/linemap';
+import { findErrorLine } from './core/errorline';
 import { Mc6845, type CrtcSnapshot } from './peripherals/mc6845';
 import { Mc6821Keyboard } from './peripherals/mc6821-kbd';
 import type { RegisterSnapshot } from './core/types';
@@ -82,6 +83,7 @@ const dataStore = writable<DumpRow[]>([]);
 const vramStore = writable<DumpRow[]>([]);
 const crtStore = writable<CrtView | null>(null);
 const pcLineStore = writable<number | null>(null);
+const errorLineStore = writable<number | null>(null);
 const activeSlotStore = writable<ProgramSlot>('default');
 const messagesStore = writable<string[]>([]);
 const runningStore = writable(false);
@@ -95,6 +97,8 @@ export const vram = readonly(vramStore);
 export const crt = readonly(crtStore);
 /** 0-based source line at PC, for the editor highlight (null = none). */
 export const pcLine = readonly(pcLineStore);
+/** 0-based source line of the first syntax error (null = none). */
+export const errorLine = readonly(errorLineStore);
 export const activeSlot = readonly(activeSlotStore);
 export const messages = readonly(messagesStore);
 export const running = readonly(runningStore);
@@ -183,9 +187,11 @@ function assembleNow(): void {
 	lineMap = null;
 	if (!result.ok) {
 		assembleErrorStore.set(result.message);
+		errorLineStore.set(findErrorLine(assembler, currentSource, MEMORY_MAP.code.base));
 		refresh();
 		return;
 	}
+	errorLineStore.set(null);
 	const run = longestStraightRun(result.bytes);
 	if (run > MAX_STRAIGHT_RUN) {
 		assembleErrorStore.set(

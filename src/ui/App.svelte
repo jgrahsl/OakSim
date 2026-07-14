@@ -14,6 +14,7 @@
 		data,
 		vram,
 		pcLine,
+		errorLine,
 		type ProgramSlot,
 	} from '../state';
 
@@ -34,6 +35,7 @@
 					value={currentProgram()}
 					onchange={sourceChanged}
 					pcLine={$pcLine}
+					errorLine={$errorLine}
 				/>
 			</div>
 			<Console />
