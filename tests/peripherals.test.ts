@@ -175,6 +175,61 @@ describe('Mc6821Keyboard', () => {
 	});
 });
 
+describe('Timer', () => {
+	it('counts milliseconds and runs countdowns on the injected clock', async () => {
+		const { Timer } = await import('../src/peripherals/timer');
+		let clock = 1000;
+		const t = new Timer(0x70020, () => clock);
+		expect(t.read(0)).toBe(0);
+		clock = 1250;
+		expect(t.read(0)).toBe(250);
+		t.write(4, 100); // arm 100 ms
+		expect(t.read(4)).toBe(100);
+		clock = 1310;
+		expect(t.read(4)).toBe(40);
+		clock = 1400;
+		expect(t.read(4)).toBe(0); // expired
+		expect(t.read(4)).toBe(0);
+		t.write(0, 0); // reset the counter
+		expect(t.read(0)).toBe(0);
+		t.write(4, 50);
+		t.reset();
+		expect(t.read(4)).toBe(0); // machine reset disarms
+	});
+
+	it('a guest sleep loop wakes after the wall-clock duration', async () => {
+		const { Timer } = await import('../src/peripherals/timer');
+		const t = new Timer(MEMORY_MAP.mmio.base + 0x20);
+		machine.attachPeripheral(t);
+		const result = assembler.assemble(
+			[
+				'ldr r0, =0x70020',
+				'mov r1, #20',
+				'str r1, [r0, #4]', // sleep 20 ms
+				'Wait:',
+				'ldr r1, [r0, #4]',
+				'cmp r1, #0',
+				'bne Wait',
+				'mov r7, #1', // woke up
+				'b .',
+			].join('\n'),
+			MEMORY_MAP.code.base,
+		);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return;
+		machine.loadProgram(result.bytes);
+		const started = performance.now();
+		let woke = false;
+		for (let i = 0; i < 200 && !woke; i++) {
+			expect(machine.run(500_000).ok).toBe(true);
+			woke = machine.snapshotRegisters().find((r) => r.name === 'R7')!.value === 1;
+		}
+		const elapsed = performance.now() - started;
+		expect(woke).toBe(true);
+		expect(elapsed).toBeGreaterThanOrEqual(19); // slept at least ~20 ms
+	});
+});
+
 describe('default hello world program', () => {
 	it('programs the CRTC and writes the text into VRAM', () => {
 		crtc.reset();

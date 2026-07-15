@@ -61,6 +61,13 @@
 	>
 		Kbd
 	</button>
+	<button
+		class:active={$activeSlot === 'timer'}
+		title="Built-in timer demo: 100 ms animation via the sleep countdown (read-only)"
+		onclick={() => onselectslot('timer')}
+	>
+		Timer
+	</button>
 	{#each Array(SLOT_COUNT) as _, slot (slot)}
 		<button
 			class:active={$activeSlot === slot}

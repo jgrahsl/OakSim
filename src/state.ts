@@ -15,14 +15,17 @@ import {
 import { hexdump, pageBase, type DumpRow, type HexMarker } from './core/hexdump';
 import helloSource from '../examples/hello.s?raw';
 import keyboardSource from '../examples/keyboard.s?raw';
+import timerSource from '../examples/timer.s?raw';
 import { buildLineMap, lineAt, type LineRange } from './core/linemap';
 import { findErrorLine } from './core/errorline';
 import { Mc6845, type CrtcSnapshot } from './peripherals/mc6845';
 import { Mc6821Keyboard } from './peripherals/mc6821-kbd';
+import { Timer } from './peripherals/timer';
 import type { RegisterSnapshot } from './core/types';
 
 export const DEFAULT_PROGRAM = helloSource;
 export const KEYBOARD_PROGRAM = keyboardSource;
+export const TIMER_PROGRAM = timerSource;
 
 /** What CrtDisplay.svelte renders: CRTC state + the visible VRAM cells. */
 export interface CrtView {
@@ -38,10 +41,11 @@ export interface CrtView {
  * every edit and on switching away, so the active program survives page
  * reloads.
  */
-export type ProgramSlot = 'default' | 'keyboard' | number;
+export type ProgramSlot = 'default' | 'keyboard' | 'timer' | number;
 const BUILTIN_PROGRAMS: Record<string, string> = {
 	default: helloSource,
 	keyboard: keyboardSource,
+	timer: timerSource,
 };
 export const SLOT_COUNT = 4;
 const ACTIVE_SLOT_KEY = 'oaksim.activeSlot';
@@ -72,6 +76,7 @@ let machine: Machine;
 let assembler: Assembler;
 let crtc: Mc6845;
 let keyboard: Mc6821Keyboard;
+let timer: Timer;
 
 const registersStore = writable<RegisterSnapshot[]>([]);
 const memoryStore = writable<DumpRow[]>([]);
@@ -413,6 +418,8 @@ export function initState(): void {
 	machine.attachPeripheral(crtc);
 	keyboard = new Mc6821Keyboard(MEMORY_MAP.mmio.base + 0x10);
 	machine.attachPeripheral(keyboard);
+	timer = new Timer(MEMORY_MAP.mmio.base + 0x20);
+	machine.attachPeripheral(timer);
 
 	// Restore the slot that was active before the last reload.
 	const persisted = storage?.getItem(ACTIVE_SLOT_KEY);
